@@ -89,7 +89,17 @@
         >
           添加账户
         </button>
-        
+
+        <button
+          class="rounded-full border border-border px-4 py-2 text-sm font-medium transition-colors"
+          :class="autoRefreshPaused
+            ? 'border-border bg-background text-foreground hover:border-primary hover:text-primary'
+            : 'border-primary bg-primary text-primary-foreground hover:opacity-90'"
+          @click="toggleAutoRefresh"
+        >
+          自动刷新
+        </button>
+
         <div ref="moreActionsRef" class="relative">
           <button
             class="flex items-center gap-2 rounded-full border border-input bg-background px-4 py-2 text-sm font-medium
@@ -868,6 +878,7 @@ const isRegistering = ref(false)
 const isRefreshing = ref(false)
 const isBulkOperating = ref(false)
 const automationError = ref('')
+const autoRefreshPaused = ref(true)  // 自动刷新暂停状态（默认暂停）
 const REGISTER_TASK_CACHE_KEY = 'accounts-register-task-cache'
 const LOGIN_TASK_CACHE_KEY = 'accounts-login-task-cache'
 const REGISTER_CLEAR_KEY = 'accounts-register-log-clear'
@@ -922,6 +933,33 @@ const refreshAccounts = async () => {
   await accountsStore.loadAccounts()
   selectedIds.value = new Set()
   showMoreActions.value = false
+}
+
+// 加载自动刷新状态
+const loadAutoRefreshStatus = async () => {
+  try {
+    const response = await accountsApi.getAutoRefreshStatus()
+    autoRefreshPaused.value = response.paused
+  } catch (error: any) {
+    console.error('Failed to load auto-refresh status:', error)
+  }
+}
+
+// 切换自动刷新状态
+const toggleAutoRefresh = async () => {
+  try {
+    if (autoRefreshPaused.value) {
+      await accountsApi.resumeAutoRefresh()
+      autoRefreshPaused.value = false
+      toast.success('自动刷新已恢复')
+    } else {
+      await accountsApi.pauseAutoRefresh()
+      autoRefreshPaused.value = true
+      toast.warning('自动刷新已暂停（重启后恢复）')
+    }
+  } catch (error: any) {
+    toast.error(error.message || '切换失败')
+  }
 }
 
 const readCachedTask = <T,>(key: string): T | null => {
@@ -1298,6 +1336,7 @@ onMounted(async () => {
   hydrateTaskCache()
   await refreshAccounts()
   await loadCurrentTasks()
+  await loadAutoRefreshStatus()  // 加载自动刷新状态
   startBackgroundTaskPolling()
   document.addEventListener('click', handleMoreActionsClick)
 })

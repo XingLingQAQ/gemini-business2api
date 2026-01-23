@@ -1133,6 +1133,37 @@ async def admin_check_login_refresh(request: Request):
         return {"status": "idle"}
     return task.to_dict()
 
+@app.post("/admin/auto-refresh/pause")
+@require_login()
+async def admin_pause_auto_refresh(request: Request):
+    """暂停自动刷新（运行时开关，不保存到数据库）"""
+    if not login_service:
+        raise HTTPException(503, "login service unavailable")
+    login_service.pause_auto_refresh()
+    return {"status": "paused", "message": "Auto-refresh paused (runtime only)"}
+
+@app.post("/admin/auto-refresh/resume")
+@require_login()
+async def admin_resume_auto_refresh(request: Request):
+    """恢复自动刷新并立即执行一次检查"""
+    if not login_service:
+        raise HTTPException(503, "login service unavailable")
+    was_paused = login_service.resume_auto_refresh()
+    # 如果之前是暂停状态，立即执行一次检查
+    if was_paused:
+        asyncio.create_task(login_service.check_and_refresh())
+        return {"status": "active", "message": "Auto-refresh resumed and checking now"}
+    return {"status": "active", "message": "Auto-refresh resumed"}
+
+@app.get("/admin/auto-refresh/status")
+@require_login()
+async def admin_get_auto_refresh_status(request: Request):
+    """获取自动刷新状态"""
+    if not login_service:
+        raise HTTPException(503, "login service unavailable")
+    is_paused = login_service.is_auto_refresh_paused()
+    return {"paused": is_paused, "status": "paused" if is_paused else "active"}
+
 @app.delete("/admin/accounts/{account_id}")
 @require_login()
 async def admin_delete_account(request: Request, account_id: str):

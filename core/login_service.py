@@ -56,6 +56,7 @@ class LoginService(BaseTaskService[LoginTask]):
             log_prefix="REFRESH",
         )
         self._is_polling = False
+        self._auto_refresh_paused = True  # 运行时开关：默认暂停（不自动刷新）
 
     async def start_login(self, account_ids: List[str]) -> LoginTask:
         """启动登录任务（支持排队）。"""
@@ -320,7 +321,11 @@ class LoginService(BaseTaskService[LoginTask]):
         logger.info("[LOGIN] refresh polling started (interval: 30 minutes)")
         try:
             while self._is_polling:
-                await self.check_and_refresh()
+                # 检查运行时开关
+                if not self._auto_refresh_paused:
+                    await self.check_and_refresh()
+                else:
+                    logger.debug("[LOGIN] auto-refresh paused, skipping check")
                 await asyncio.sleep(1800)
         except asyncio.CancelledError:
             logger.info("[LOGIN] polling stopped")
@@ -328,6 +333,23 @@ class LoginService(BaseTaskService[LoginTask]):
             logger.error("[LOGIN] polling error: %s", exc)
         finally:
             self._is_polling = False
+
+    def pause_auto_refresh(self) -> None:
+        """暂停自动刷新（不保存到数据库，重启后恢复）"""
+        self._auto_refresh_paused = True
+        logger.info("[LOGIN] auto-refresh paused (runtime only)")
+
+    def resume_auto_refresh(self) -> None:
+        """恢复自动刷新"""
+        was_paused = self._auto_refresh_paused
+        self._auto_refresh_paused = False
+        logger.info("[LOGIN] auto-refresh resumed")
+        # 如果是从暂停状态恢复，返回 True 表示需要立即检查
+        return was_paused
+
+    def is_auto_refresh_paused(self) -> bool:
+        """获取自动刷新暂停状态"""
+        return self._auto_refresh_paused
 
     def stop_polling(self) -> None:
         self._is_polling = False
