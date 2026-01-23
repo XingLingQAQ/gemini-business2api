@@ -41,9 +41,22 @@
                   class="w-full rounded-2xl border border-input bg-background px-3 py-2 text-sm"
                   placeholder="自动检测或手动填写"
                 />
-                <label class="block text-xs text-muted-foreground">代理地址</label>
+                <div class="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <span>Account operations proxy</span>
+                  <HelpTip text="Proxy for register/login/refresh operations, leave empty to disable" />
+                </div>
                 <input
-                  v-model="localSettings.basic.proxy"
+                  v-model="localSettings.basic.proxy_for_auth"
+                  type="text"
+                  class="w-full rounded-2xl border border-input bg-background px-3 py-2 text-sm"
+                  placeholder="http://127.0.0.1:7890"
+                />
+                <div class="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <span>Chat operations proxy</span>
+                  <HelpTip text="Proxy for JWT/session/messages operations, leave empty to disable" />
+                </div>
+                <input
+                  v-model="localSettings.basic.proxy_for_chat"
                   type="text"
                   class="w-full rounded-2xl border border-input bg-background px-3 py-2 text-sm"
                   placeholder="http://127.0.0.1:7890"

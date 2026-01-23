@@ -1,4 +1,4 @@
-﻿import axios, { type AxiosInstance, type AxiosError } from 'axios'
+import axios, { type AxiosInstance, type AxiosError } from 'axios'
 
 // 创建 axios 实例
 export const apiClient: AxiosInstance = axios.create({
@@ -38,7 +38,15 @@ apiClient.interceptors.response.use(
       ? (error.response.data as any).detail || (error.response.data as any).message
       : error.message
 
-    return Promise.reject(new Error(errorMessage || '请求失败'))
+    // 保留 HTTP 状态码，便于调用方做精细化处理（例如任务不存在时的 404）
+    const wrapped = new Error(errorMessage || '请求失败') as Error & {
+      status?: number
+      data?: unknown
+    }
+    wrapped.status = error.response?.status
+    wrapped.data = error.response?.data
+
+    return Promise.reject(wrapped)
   }
 )
 
