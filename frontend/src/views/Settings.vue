@@ -128,13 +128,25 @@
                 </div>
                 <div class="flex items-center justify-between gap-2 text-xs text-muted-foreground">
                   <span>浏览器引擎</span>
-                  <HelpTip text="UC: 支持无头/有头，但可能失败。DP: 支持无头/有头，更稳定，推荐使用。" />
+                  <HelpTip text="UC: 支持无头/有头，但可能失败。DP: 支持无头/有头，更稳定，推荐使用。Steel: 远程浏览器服务 (https://steel.dev/)。" />
                 </div>
                 <SelectMenu
                   v-model="localSettings.basic.browser_engine"
                   :options="browserEngineOptions"
                   class="w-full"
                 />
+                <div v-if="localSettings.basic.browser_engine === 'steel'" class="space-y-3">
+                  <div class="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                    <span>Steel API Key</span>
+                    <HelpTip text="使用 Steel 远程浏览器服务时需要提供的 API 密钥，请访问 https://steel.dev/ 获取" />
+                  </div>
+                  <input
+                    v-model="localSettings.basic.steel_api_key"
+                    type="text"
+                    class="w-full rounded-2xl border border-input bg-background px-3 py-2 text-sm font-mono"
+                    placeholder="sk-..."
+                  />
+                </div>
                 <div class="flex items-center justify-between gap-2 text-xs text-muted-foreground">
                   <span>临时邮箱服务</span>
                   <HelpTip text="选择用于自动注册账号的临时邮箱服务提供商。" />
@@ -416,6 +428,7 @@ const videosRateLimitCooldownHours = createCooldownHours(
 const browserEngineOptions = [
   { label: 'UC - 支持无头/有头', value: 'uc' },
   { label: 'DP - 支持无头/有头（推荐）', value: 'dp' },
+  { label: 'Steel - 远程浏览器', value: 'steel' },
 ]
 const tempMailProviderOptions = mailProviderOptions
 const imageOutputOptions = [

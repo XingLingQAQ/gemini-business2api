@@ -64,8 +64,9 @@ class BasicConfig(BaseModel):
     gptmail_api_key: str = Field(default="", description="GPTMail API key")
     gptmail_verify_ssl: bool = Field(default=True, description="GPTMail SSL校验")
     gptmail_domain: str = Field(default="", description="GPTMail 邮箱域名（可选，留空则随机选择）")
-    browser_engine: str = Field(default="dp", description="浏览器引擎：uc 或 dp")
+    browser_engine: str = Field(default="dp", description="浏览器引擎：uc、dp 或 steel")
     browser_headless: bool = Field(default=False, description="自动化浏览器无头模式")
+    steel_api_key: str = Field(default="", description="Steel 远程浏览器 API Key")
     refresh_window_hours: int = Field(default=1, ge=0, le=24, description="过期刷新窗口（小时）")
     register_default_count: int = Field(default=1, ge=1, description="默认注册数量")
     register_domain: str = Field(default="", description="DuckMail 域名（推荐）")
@@ -216,6 +217,7 @@ class ConfigManager:
             gptmail_verify_ssl=_parse_bool(basic_data.get("gptmail_verify_ssl"), True),
             browser_engine=basic_data.get("browser_engine") or "dp",
             browser_headless=_parse_bool(basic_data.get("browser_headless"), False),
+            steel_api_key=str(basic_data.get("steel_api_key") or "").strip(),
             refresh_window_hours=int(refresh_window_raw),
             register_default_count=int(register_default_raw),
             register_domain=str(register_domain_raw or "").strip(),
