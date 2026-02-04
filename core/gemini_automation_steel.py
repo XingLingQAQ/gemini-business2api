@@ -191,29 +191,29 @@ class GeminiAutomationSteel:
             self._save_screenshot(page, "code_input_missing")
             return {"success": False, "error": "code input not found"}
 
-        # Step 5: 轮询邮件获取验证码（传入发送时间)
-        self._log("info", "polling email for verification code...")
-        code = mail_client.poll_for_code(timeout=40, interval=4, since_time=send_time)
+        # Step 5: 轮询邮件获取验证码（3次，每次5秒间隔）
+        self._log("info", "📬 等待邮箱验证码...")
+        code = mail_client.poll_for_code(timeout=15, interval=5, since_time=send_time)
 
         if not code:
-            self._log("warning", "verification code timeout, trying to resend...")
+            self._log("warning", "⚠️ 验证码超时，15秒后重新发送...")
+            time.sleep(15)
             # 更新发送时间（在点击按钮之前记录）
             send_time = datetime.now()
             # 尝试点击重新发送按钮
             if self._click_resend_code_button(page):
-                self._log("info", "resend button clicked, waiting for new code...")
-                # 再次轮询验证码
-                code = mail_client.poll_for_code(timeout=40, interval=4, since_time=send_time)
+                # 再次轮询验证码（3次，每次5秒间隔）
+                code = mail_client.poll_for_code(timeout=15, interval=5, since_time=send_time)
                 if not code:
-                    self._log("error", "still no code after resend")
+                    self._log("error", "❌ 重新发送后仍未收到验证码")
                     self._save_screenshot(page, "code_timeout_after_resend")
                     return {"success": False, "error": "verification code timeout after resend"}
             else:
-                self._log("error", "code timeout and resend button not found")
+                self._log("error", "❌ 验证码超时且未找到重新发送按钮")
                 self._save_screenshot(page, "code_timeout")
                 return {"success": False, "error": "verification code timeout"}
 
-        self._log("info", f"received verification code: {code}")
+        self._log("info", f"✅ 收到验证码: {code}")
 
         # Step 6: 输入验证码并提交
         try:
