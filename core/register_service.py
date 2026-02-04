@@ -203,7 +203,43 @@ class RegisterService(BaseTaskService[RegisterTask]):
 
         log_cb("info", f"🌐 步骤 2/3: 启动浏览器 (引擎={browser_engine}, 无头模式={headless})...")
 
-        if browser_engine == "dp":
+        if browser_engine == "steel":
+            # Steel 云端浏览器引擎
+            from core.steel_client import SteelClient
+            from core.gemini_automation_steel import GeminiAutomationSteel
+
+            steel_api_key = config.basic.steel_api_key
+            if not steel_api_key:
+                raise ValueError("Steel 引擎需要配置 steel_api_key")
+
+            log_cb("info", f"🔗 连接 Steel 云端浏览器服务...")
+
+            try:
+                # 创建 Steel 客户端并创建云端会话
+                steel = SteelClient(steel_api_key)
+                session = steel.create_session(
+                    headless=headless,
+                    dimensions={"width": 1920, "height": 1080},
+                    block_ads=True,
+                    proxy=config.basic.proxy_for_auth
+                )
+
+                log_cb("info", f"✅ Steel 云端会话: {session.id}")
+                log_cb("info", f"📺 查看器: {session.session_viewer_url}")
+
+                # 使用 Steel CDP URL 创建 GeminiAutomationSteel
+                automation = GeminiAutomationSteel(
+                    steel_cdp_url=session.cdp_url,
+                    user_agent=self.user_agent,
+                    timeout=60,
+                    log_callback=log_cb,
+                )
+
+            except Exception as e:
+                log_cb("error", f"Steel 云端浏览器失败: {e}")
+                raise
+
+        elif browser_engine == "dp":
             # DrissionPage 引擎：支持有头和无头模式
             automation = GeminiAutomation(
                 user_agent=self.user_agent,
