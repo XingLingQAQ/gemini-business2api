@@ -163,6 +163,19 @@ python main.py
 DATABASE_URL=postgresql://user:password@host/dbname?sslmode=require
 ```
 
+### 本地刷新服务建议（refresh-worker）
+
+- 推荐拓扑：`beta` 部署在云端，`refresh-worker` 在本地机器执行浏览器刷新。
+- 推荐本地优先使用 SQLite（`data.db`）做刷新侧缓存，网络不稳定时更稳。
+- 如需由本地刷新器直接连远端面板，可使用远端接口 + `ADMIN_KEY`：
+
+```env
+REMOTE_PROJECT_BASE_URL=https://your-beta-domain.example
+REMOTE_PROJECT_PASSWORD=your_admin_key
+```
+
+- 登录入口建议使用 `https://auth.business.gemini.google/login`（`/` 通常会跳转，但直接用 `/login` 更稳定）。
+
 **免费 PostgreSQL 推荐：**
 
 | 服务 | 免费额度 | 获取方式 |
