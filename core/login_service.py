@@ -292,6 +292,10 @@ class LoginService(BaseTaskService[LoginTask]):
         headless = config.basic.browser_headless
 
         log_cb("info", f"🌐 启动浏览器 (模式={browser_mode}, 无头={headless})...")
+        if proxy_for_auth:
+            log_cb("info", f"🌐 浏览器代理: {proxy_for_auth}")
+        else:
+            log_cb("info", "🌐 浏览器代理: 未启用")
 
         automation = GeminiAutomation(
             user_agent=self.user_agent,

@@ -181,6 +181,10 @@ class RegisterService(BaseTaskService[RegisterTask]):
         proxy_for_auth, _ = parse_proxy_setting(config.basic.proxy_for_auth)
 
         log_cb("info", f"🌐 步骤 2/3: 启动浏览器 (模式={browser_mode}, 无头={headless})...")
+        if proxy_for_auth:
+            log_cb("info", f"🌐 浏览器代理: {proxy_for_auth}")
+        else:
+            log_cb("info", "🌐 浏览器代理: 未启用")
 
         automation = GeminiAutomation(
             user_agent=self.user_agent,
@@ -228,6 +232,12 @@ class RegisterService(BaseTaskService[RegisterTask]):
             config_data["mail_api_key"] = config.basic.cfmail_api_key
             config_data["mail_verify_ssl"] = config.basic.cfmail_verify_ssl
             config_data["mail_domain"] = config.basic.cfmail_domain
+        elif temp_mail_provider == "samplemail":
+            config_data["mail_password"] = ""
+            config_data["mail_base_url"] = config.basic.samplemail_base_url
+            config_data["mail_api_key"] = ""
+            config_data["mail_verify_ssl"] = config.basic.samplemail_verify_ssl
+            config_data["mail_domain"] = ""
         elif temp_mail_provider == "moemail":
             config_data["mail_password"] = getattr(client, "email_id", "") or getattr(client, "password", "")
             config_data["mail_base_url"] = config.basic.moemail_base_url
