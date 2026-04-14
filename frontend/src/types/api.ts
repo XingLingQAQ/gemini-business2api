@@ -78,57 +78,20 @@ export interface Stats {
   requests_per_hour: number
 }
 
-export type TempMailProvider = 'duckmail' | 'moemail' | 'freemail' | 'gptmail' | 'cfmail' | 'samplemail'
-
 export interface Settings {
   basic: {
     api_key?: string
     base_url?: string
-    proxy_for_auth?: string
     proxy_for_chat?: string
-    duckmail_base_url?: string
-    duckmail_api_key?: string
-    duckmail_verify_ssl?: boolean
-    temp_mail_provider?: TempMailProvider
-    moemail_base_url?: string
-    moemail_api_key?: string
-    moemail_domain?: string
-    freemail_base_url?: string
-    freemail_jwt_token?: string
-    freemail_verify_ssl?: boolean
-    freemail_domain?: string
-    mail_proxy_enabled?: boolean
-    gptmail_base_url?: string
-    gptmail_api_key?: string
-    gptmail_verify_ssl?: boolean
-    gptmail_domain?: string
-    cfmail_base_url?: string
-    cfmail_api_key?: string
-    cfmail_verify_ssl?: boolean
-    cfmail_domain?: string
-    samplemail_base_url?: string
-    samplemail_verify_ssl?: boolean
-    browser_engine?: string
-    browser_mode?: 'normal' | 'silent' | 'headless'
-    browser_headless?: boolean
-    refresh_window_hours?: number
-    register_default_count?: number
-    register_domain?: string
     image_expire_hours?: number
   }
   retry: {
     max_account_switch_tries: number
-    account_failure_threshold: number
     text_rate_limit_cooldown_seconds: number
     images_rate_limit_cooldown_seconds: number
     videos_rate_limit_cooldown_seconds: number
     session_cache_ttl_seconds: number
     auto_refresh_accounts_seconds: number
-    scheduled_refresh_enabled?: boolean
-    scheduled_refresh_interval_minutes?: number
-    scheduled_refresh_cron?: string
-    refresh_cooldown_hours?: number
-    verification_code_resend_count?: number
   }
   public_display: {
     logo_url?: string
@@ -138,6 +101,9 @@ export interface Settings {
     enabled: boolean
     supported_models: string[]
     output_format?: 'base64' | 'url'
+  }
+  video_generation: {
+    output_format?: 'html' | 'url' | 'markdown'
   }
   session: {
     expire_hours: number
@@ -319,39 +285,4 @@ export interface VersionCheckResponse extends VersionInfoResponse {
   is_latest: boolean
   update_available: boolean
   check_error?: string
-}
-
-export type AutomationStatus = 'pending' | 'running' | 'success' | 'failed' | 'cancelled'
-
-export interface RegisterTask {
-  id: string
-  count: number
-  domain?: string | null
-  status: AutomationStatus
-  progress: number
-  success_count: number
-  fail_count: number
-  created_at: number
-  finished_at?: number | null
-  results: Array<Record<string, any>>
-  error?: string | null
-  logs?: Array<{ time: string; level: string; message: string }>
-  cancel_requested?: boolean
-  cancel_reason?: string | null
-}
-
-export interface LoginTask {
-  id: string
-  account_ids: string[]
-  status: AutomationStatus
-  progress: number
-  success_count: number
-  fail_count: number
-  created_at: number
-  finished_at?: number | null
-  results: Array<Record<string, any>>
-  error?: string | null
-  logs?: Array<{ time: string; level: string; message: string }>
-  cancel_requested?: boolean
-  cancel_reason?: string | null
 }

@@ -3,8 +3,6 @@ import type {
   AccountsConfigResponse,
   AccountsListResponse,
   AccountConfigItem,
-  RegisterTask,
-  LoginTask,
 } from '@/types/api'
 
 export const accountsApi = {
@@ -51,33 +49,6 @@ export const accountsApi = {
       '/admin/accounts/bulk-delete',
       accountIds
     ),
-
-  startRegister: (count?: number, domain?: string, mail_provider?: string) =>
-    apiClient.post<never, RegisterTask>('/admin/register/start', { count, domain, mail_provider }),
-
-  getRegisterTask: (taskId: string) =>
-    apiClient.get<never, RegisterTask>(`/admin/register/task/${taskId}`),
-
-  getRegisterCurrent: () =>
-    apiClient.get<never, RegisterTask | { status: string }>('/admin/register/current'),
-
-  cancelRegisterTask: (taskId: string, reason?: string) =>
-    apiClient.post<{ reason?: string }, RegisterTask>(`/admin/register/cancel/${taskId}`, reason ? { reason } : {}),
-
-  startLogin: (accountIds: string[]) =>
-    apiClient.post<never, LoginTask>('/admin/login/start', accountIds),
-
-  getLoginTask: (taskId: string) =>
-    apiClient.get<never, LoginTask>(`/admin/login/task/${taskId}`),
-
-  getLoginCurrent: () =>
-    apiClient.get<never, LoginTask | { status: string }>('/admin/login/current'),
-
-  cancelLoginTask: (taskId: string, reason?: string) =>
-    apiClient.post<{ reason?: string }, LoginTask>(`/admin/login/cancel/${taskId}`, reason ? { reason } : {}),
-
-  checkLogin: () =>
-    apiClient.post<never, LoginTask | { status: string }>('/admin/login/check'),
 
   // 暂停自动刷新
   pauseAutoRefresh: () =>

@@ -1,12 +1,17 @@
 <template>
   <div class="space-y-8">
-    <section v-if="isLoading" class="ui-panel text-sm text-muted-foreground">
+    <section v-if="isLoading && !localSettings" class="ui-panel text-sm text-muted-foreground">
       正在加载设置...
     </section>
 
     <section v-else class="ui-panel">
-      <div class="flex items-center justify-between">
-        <p class="ui-section-title">配置面板</p>
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <p class="ui-section-title">系统设置</p>
+          <p class="mt-1 text-xs text-muted-foreground">
+            主分支只保留 2api 运行参数，注册机相关配置已从当前页面移除。
+          </p>
+        </div>
         <Button
           size="xs"
           variant="primary"
@@ -18,427 +23,208 @@
         </Button>
       </div>
 
-      <div v-if="errorMessage" class="mt-4 rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+      <div
+        v-if="errorMessage"
+        class="mt-4 rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive"
+      >
         {{ errorMessage }}
       </div>
 
-      <div v-if="localSettings" class="mt-6 space-y-8">
-        <div class="grid gap-4 lg:grid-cols-3">
-          <div class="space-y-4">
-            <div class="ui-card">
-              <p class="ui-section-kicker">基础</p>
-              <div class="mt-4 space-y-3">
-                <div class="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                  <label class="block">API 密钥</label>
-                  <HelpTip text="支持多个密钥，用逗号分隔。例如: key1,key2,key3" />
-                </div>
-                <Input
-                  v-model="localSettings.basic.api_key"
-                  type="text"
-                  block
-                  placeholder="可选，多个密钥用逗号分隔"
-                />
-                <label class="block text-xs text-muted-foreground">基础地址</label>
-                <Input
-                  v-model="localSettings.basic.base_url"
-                  type="text"
-                  block
-                  placeholder="自动检测或手动填写"
-                />
-                <div class="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                  <span>账户操作代理</span>
-                  <HelpTip text="用于注册/登录/刷新操作的代理，留空则禁用" />
-                </div>
-                <Input
-                  v-model="localSettings.basic.proxy_for_auth"
-                  type="text"
-                  block
-                  placeholder="http://127.0.0.1:7890 | no_proxy=localhost,127.0.0.1"
-                />
-                <div class="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                  <span>聊天操作代理</span>
-                  <HelpTip text="用于 JWT/会话/消息操作的代理，留空则禁用" />
-                </div>
-                <Input
-                  v-model="localSettings.basic.proxy_for_chat"
-                  type="text"
-                  block
-                  placeholder="http://127.0.0.1:7890 | no_proxy=localhost,127.0.0.1"
-                />
-              </div>
-            </div>
+      <div v-if="localSettings" class="mt-6 grid gap-4 lg:grid-cols-3">
+        <div class="space-y-4">
+          <div class="ui-card">
+            <p class="ui-section-kicker">基础</p>
+            <div class="mt-4 space-y-3">
+              <label class="block text-xs text-muted-foreground">API 密钥</label>
+              <Input
+                v-model="localSettings.basic.api_key"
+                type="text"
+                block
+                placeholder="可选，多个密钥用逗号分隔"
+              />
 
-            <div class="ui-card">
-              <p class="ui-section-kicker">重试</p>
-              <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
-                <label class="col-span-2 text-xs text-muted-foreground">账户切换次数</label>
-                <Input
-                  v-model="maxAccountSwitchTriesInput"
-                  type="number"
-                  block
-                  root-class="col-span-2"
-                />
+              <label class="block text-xs text-muted-foreground">基础地址</label>
+              <Input
+                v-model="localSettings.basic.base_url"
+                type="text"
+                block
+                placeholder="留空自动检测"
+              />
 
-                <label class="col-span-2 text-xs text-muted-foreground">对话冷却（小时）</label>
-                <Input
-                  v-model="textRateLimitCooldownHoursInput"
-                  type="number"
-                  block
-                  root-class="col-span-2"
-                />
+              <label class="block text-xs text-muted-foreground">聊天代理</label>
+              <Input
+                v-model="localSettings.basic.proxy_for_chat"
+                type="text"
+                block
+                placeholder="http://127.0.0.1:7890"
+              />
 
-                <label class="col-span-2 text-xs text-muted-foreground">绘图冷却（小时）</label>
-                <Input
-                  v-model="imagesRateLimitCooldownHoursInput"
-                  type="number"
-                  block
-                  root-class="col-span-2"
-                />
-
-                <label class="col-span-2 text-xs text-muted-foreground">视频冷却（小时）</label>
-                <Input
-                  v-model="videosRateLimitCooldownHoursInput"
-                  type="number"
-                  block
-                  root-class="col-span-2"
-                />
-
-                <label class="col-span-2 text-xs text-muted-foreground">会话缓存秒数</label>
-                <Input
-                  v-model="sessionCacheTtlInput"
-                  type="number"
-                  block
-                  root-class="col-span-2"
-                />
-
-                <div class="col-span-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                  <span>自动刷新账号间隔（秒，0=关闭）</span>
-                  <HelpTip text="仅在数据库存储启用时生效：用于检测账号配置变化并重载列表，不会刷新 Cookie。" />
-                </div>
-                <Input
-                  v-model="autoRefreshAccountsSecondsInput"
-                  type="number"
-                  block
-                  root-class="col-span-2"
-                />
-              </div>
-            </div>
-
-          </div>
-
-          <div class="space-y-4">
-            <div class="ui-card">
-              <p class="ui-section-kicker">自动注册/刷新</p>
-              <div class="mt-4 space-y-3">
-                <div class="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                  <span>浏览器模式</span>
-                  <HelpTip text="normal=正常窗口；silent=静默最小化（有头但尽量不抢焦点）；headless=无头。" />
-                </div>
-                <SelectMenu
-                  v-model="localSettings.basic.browser_mode"
-                  :options="browserModeOptions"
-                  class="w-full"
-                />
-                <div class="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                  <span>浏览器引擎</span>
-                  <HelpTip text="UC: 支持无头/有头，但可能失败。DP: 支持无头/有头，更稳定，推荐使用。" />
-                </div>
-                <SelectMenu
-                  v-model="localSettings.basic.browser_engine"
-                  :options="browserEngineOptions"
-                  class="w-full"
-                />
-                <div class="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                  <span>临时邮箱服务</span>
-                  <HelpTip text="选择用于自动注册账号的临时邮箱服务提供商。" />
-                </div>
-                <SelectMenu
-                  v-model="localSettings.basic.temp_mail_provider"
-                  :options="tempMailProviderOptions"
-                  class="w-full"
-                />
-                <div class="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                  <span>临时邮箱代理</span>
-                  <HelpTip text="启用后临时邮箱请求将使用账户操作代理地址。" />
-                </div>
-                <Checkbox v-model="localSettings.basic.mail_proxy_enabled">
-                  启用邮箱代理（使用账户操作代理）
-                </Checkbox>
-
-                <!-- DuckMail 配置 -->
-                <template v-if="localSettings.basic.temp_mail_provider === 'duckmail'">
-                  <Checkbox v-model="localSettings.basic.duckmail_verify_ssl">
-                    DuckMail SSL 校验
-                  </Checkbox>
-                  <label class="block text-xs text-muted-foreground">DuckMail API</label>
-                  <Input
-                    v-model="localSettings.basic.duckmail_base_url"
-                    type="text"
-                    block
-                    placeholder="https://api.duckmail.sbs"
-                  />
-                  <label class="block text-xs text-muted-foreground">DuckMail API 密钥</label>
-                  <Input
-                    v-model="localSettings.basic.duckmail_api_key"
-                    type="text"
-                    block
-                    placeholder="dk_xxx"
-                  />
-                  <label class="block text-xs text-muted-foreground">DuckMail 域名（推荐）</label>
-                  <Input
-                    v-model="localSettings.basic.register_domain"
-                    type="text"
-                    block
-                    placeholder="留空则自动选择"
-                  />
-                </template>
-
-                <!-- Moemail 配置 -->
-                <template v-if="localSettings.basic.temp_mail_provider === 'moemail'">
-                  <label class="block text-xs text-muted-foreground">Moemail API</label>
-                  <Input
-                    v-model="localSettings.basic.moemail_base_url"
-                    type="text"
-                    block
-                    placeholder="https://moemail.app"
-                  />
-                  <label class="block text-xs text-muted-foreground">Moemail API 密钥</label>
-                  <Input
-                    v-model="localSettings.basic.moemail_api_key"
-                    type="text"
-                    block
-                    placeholder="X-API-Key"
-                  />
-                  <label class="block text-xs text-muted-foreground">Moemail 域名（可选，留空随机）</label>
-                  <Input
-                    v-model="localSettings.basic.moemail_domain"
-                    type="text"
-                    block
-                    placeholder="moemail.app"
-                  />
-                </template>
-
-                <!-- Freemail 配置 -->
-                <template v-if="localSettings.basic.temp_mail_provider === 'freemail'">
-                  <Checkbox v-model="localSettings.basic.freemail_verify_ssl">
-                    Freemail SSL 校验
-                  </Checkbox>
-                  <label class="block text-xs text-muted-foreground">Freemail API</label>
-                  <Input
-                    v-model="localSettings.basic.freemail_base_url"
-                    type="text"
-                    block
-                    placeholder="http://your-freemail-server.com"
-                  />
-                  <label class="block text-xs text-muted-foreground">Freemail JWT Token</label>
-                  <Input
-                    v-model="localSettings.basic.freemail_jwt_token"
-                    type="text"
-                    block
-                    placeholder="eyJ..."
-                  />
-                  <label class="block text-xs text-muted-foreground">Freemail 域名（可选，留空随机）</label>
-                  <Input
-                    v-model="localSettings.basic.freemail_domain"
-                    type="text"
-                    block
-                    placeholder="freemail.local"
-                  />
-                </template>
-
-                <!-- GPTMail 配置 -->
-                <template v-if="localSettings.basic.temp_mail_provider === 'gptmail'">
-                  <Checkbox v-model="localSettings.basic.gptmail_verify_ssl">
-                    GPTMail SSL 校验
-                  </Checkbox>
-                  <label class="block text-xs text-muted-foreground">GPTMail API</label>
-                  <Input
-                    v-model="localSettings.basic.gptmail_base_url"
-                    type="text"
-                    block
-                    placeholder="https://mail.chatgpt.org.uk"
-                  />
-                  <label class="block text-xs text-muted-foreground">GPTMail API Key</label>
-                  <Input
-                    v-model="localSettings.basic.gptmail_api_key"
-                    type="text"
-                    block
-                    placeholder="X-API-Key"
-                  />
-                  <label class="block text-xs text-muted-foreground">GPTMail 邮箱域名（可选，不带@）</label>
-                  <Input
-                    v-model="localSettings.basic.gptmail_domain"
-                    type="text"
-                    block
-                    placeholder="留空则随机选择"
-                  />
-                </template>
-
-                <!-- Cloudflare Mail 配置 -->
-                <template v-if="localSettings.basic.temp_mail_provider === 'cfmail'">
-                  <Checkbox v-model="localSettings.basic.cfmail_verify_ssl">
-                    Cloudflare Mail SSL 校验
-                  </Checkbox>
-                  <label class="block text-xs text-muted-foreground">Cloudflare Mail API 地址</label>
-                  <Input
-                    v-model="localSettings.basic.cfmail_base_url"
-                    type="text"
-                    block
-                    placeholder="https://your-cfmail-instance.example.com"
-                  />
-                  <label class="block text-xs text-muted-foreground">访问密码（x-custom-auth，无密码留空）</label>
-                  <Input
-                    v-model="localSettings.basic.cfmail_api_key"
-                    type="text"
-                    block
-                    placeholder="留空则不使用密码"
-                  />
-                  <label class="block text-xs text-muted-foreground">邮箱域名（可选，不带@）</label>
-                  <Input
-                    v-model="localSettings.basic.cfmail_domain"
-                    type="text"
-                    block
-                    placeholder="留空则随机选择"
-                  />
-                </template>
-
-                <!-- Sample Mail 配置 -->
-                <template v-if="localSettings.basic.temp_mail_provider === 'samplemail'">
-                  <Checkbox v-model="localSettings.basic.samplemail_verify_ssl">
-                    Sample Mail SSL 校验
-                  </Checkbox>
-                  <label class="block text-xs text-muted-foreground">Sample Mail Worker 地址</label>
-                  <Input
-                    v-model="localSettings.basic.samplemail_base_url"
-                    type="text"
-                    block
-                    placeholder="https://your-sample-mail-worker.example.com"
-                  />
-                  <p class="text-xs text-muted-foreground">
-                    Sample Mail 不支持按请求指定域名或 API Key，邮箱域名由 Worker 的 EMAIL_DOMAIN 决定。
-                  </p>
-                </template>
-
-                <label class="block text-xs text-muted-foreground">默认注册数量</label>
-                <Input
-                  v-model="registerDefaultCountInput"
-                  type="number"
-                  block
-                />
-              </div>
+              <label class="block text-xs text-muted-foreground">图片链接有效期（小时）</label>
+              <Input
+                :model-value="imageExpireHoursInput"
+                type="number"
+                block
+                @update:model-value="imageExpireHoursInput = $event"
+              />
             </div>
           </div>
 
-          <div class="space-y-4">
-            <div class="ui-card">
-              <div class="flex items-center justify-between gap-2">
-                <p class="ui-section-kicker">图像生成</p>
-                <HelpTip text="不建议开启图像生成功能，容易思考不出图，建议用gemini-imagen" />
-              </div>
-              <div class="mt-4 space-y-3">
-                <Checkbox v-model="localSettings.image_generation.enabled">
-                  启用图像生成
-                </Checkbox>
-                <label class="block text-xs text-muted-foreground">输出格式</label>
-                <SelectMenu
-                  v-model="localSettings.image_generation.output_format"
-                  :options="imageOutputOptions"
-                  placement="up"
-                  class="w-full"
-                />
-                <label class="block text-xs text-muted-foreground">支持模型</label>
-                <SelectMenu
-                  v-model="localSettings.image_generation.supported_models"
-                  :options="imageModelOptions"
-                  placeholder="选择模型"
-                  placement="up"
-                  multiple
-                  class="w-full"
-                />
-              </div>
-            </div>
+          <div class="ui-card">
+            <p class="ui-section-kicker">重试与缓存</p>
+            <div class="mt-4 grid grid-cols-1 gap-3">
+              <label class="block text-xs text-muted-foreground">账号切换次数</label>
+              <Input
+                :model-value="maxAccountSwitchTriesInput"
+                type="number"
+                block
+                @update:model-value="maxAccountSwitchTriesInput = $event"
+              />
 
-            <div class="ui-card">
-              <p class="ui-section-kicker">视频生成</p>
-              <div class="mt-4 space-y-3">
-                <label class="block text-xs text-muted-foreground">输出格式（使用 gemini-veo 模型时生效）</label>
-                <SelectMenu
-                  v-model="localSettings.video_generation.output_format"
-                  :options="videoOutputOptions"
-                  placement="up"
-                  class="w-full"
-                />
-              </div>
-            </div>
+              <label class="block text-xs text-muted-foreground">对话冷却（小时）</label>
+              <Input
+                :model-value="textCooldownHoursInput"
+                type="number"
+                block
+                @update:model-value="textCooldownHoursInput = $event"
+              />
 
-            <div class="ui-card">
-              <div class="flex items-center justify-between gap-2">
-                <p class="ui-section-kicker">每日配额</p>
-                <HelpTip text="基于 Google 官方限额的主动配额计数，达到上限后自动切换账号。0 表示不限制该类型。" />
-              </div>
-              <div class="mt-4 space-y-3">
-                <Checkbox v-model="localSettings.quota_limits.enabled">
-                  启用主动配额计数
-                </Checkbox>
-                <label class="block text-xs text-muted-foreground">对话每日上限</label>
-                <Input
-                  v-model="quotaTextDailyLimitInput"
-                  type="number"
-                  block
-                  placeholder="120"
-                />
-                <label class="block text-xs text-muted-foreground">绘图每日上限</label>
-                <Input
-                  v-model="quotaImagesDailyLimitInput"
-                  type="number"
-                  block
-                  placeholder="2"
-                />
-                <label class="block text-xs text-muted-foreground">视频每日上限</label>
-                <Input
-                  v-model="quotaVideosDailyLimitInput"
-                  type="number"
-                  block
-                  placeholder="1"
-                />
-                <p class="text-xs text-muted-foreground">每日北京时间 16:00 重置（对齐 Google 太平洋时间午夜）</p>
-              </div>
-            </div>
+              <label class="block text-xs text-muted-foreground">绘图冷却（小时）</label>
+              <Input
+                :model-value="imagesCooldownHoursInput"
+                type="number"
+                block
+                @update:model-value="imagesCooldownHoursInput = $event"
+              />
 
-            <div class="ui-card">
-              <p class="ui-section-kicker">公开展示</p>
-              <div class="mt-4 space-y-3">
-                <label class="block text-xs text-muted-foreground">Logo 地址</label>
-                <Input
-                  v-model="localSettings.public_display.logo_url"
-                  type="text"
-                  block
-                  placeholder="logo 地址"
-                />
-                <label class="block text-xs text-muted-foreground">聊天入口</label>
-                <Input
-                  v-model="localSettings.public_display.chat_url"
-                  type="text"
-                  block
-                  placeholder="聊天入口地址"
-                />
-                <label class="block text-xs text-muted-foreground">会话有效时长</label>
-                <Input
-                  v-model="sessionExpireHoursInput"
-                  type="number"
-                  block
-                />
-              </div>
-            </div>
+              <label class="block text-xs text-muted-foreground">视频冷却（小时）</label>
+              <Input
+                :model-value="videosCooldownHoursInput"
+                type="number"
+                block
+                @update:model-value="videosCooldownHoursInput = $event"
+              />
 
-            <div class="ui-card">
-              <p class="ui-section-kicker">说明</p>
-              <p class="mt-4 text-sm text-muted-foreground">
-                保存后会直接写入配置文件并热更新。修改后请关注日志面板确认是否生效。
-              </p>
-              <p class="mt-3 text-sm text-muted-foreground">
-                自动注册/刷新默认启用，若依赖缺失会自动降级并提示。
-              </p>
+              <label class="block text-xs text-muted-foreground">会话缓存 TTL（秒）</label>
+              <Input
+                :model-value="sessionCacheTtlInput"
+                type="number"
+                block
+                @update:model-value="sessionCacheTtlInput = $event"
+              />
+
+              <label class="block text-xs text-muted-foreground">自动刷新账号列表（秒，0=关闭）</label>
+              <Input
+                :model-value="autoRefreshAccountsSecondsInput"
+                type="number"
+                block
+                @update:model-value="autoRefreshAccountsSecondsInput = $event"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <div class="ui-card">
+            <p class="ui-section-kicker">图像能力</p>
+            <div class="mt-4 space-y-3">
+              <Checkbox v-model="localSettings.image_generation.enabled">
+                启用图像生成
+              </Checkbox>
+
+              <label class="block text-xs text-muted-foreground">输出格式</label>
+              <SelectMenu
+                v-model="localSettings.image_generation.output_format"
+                :options="imageOutputOptions"
+                placement="up"
+                class="w-full"
+              />
+
+              <label class="block text-xs text-muted-foreground">支持模型</label>
+              <SelectMenu
+                v-model="localSettings.image_generation.supported_models"
+                :options="imageModelOptions"
+                multiple
+                placement="up"
+                placeholder="选择模型"
+                class="w-full"
+              />
+            </div>
+          </div>
+
+          <div class="ui-card">
+            <p class="ui-section-kicker">视频输出</p>
+            <div class="mt-4 space-y-3">
+              <label class="block text-xs text-muted-foreground">输出格式</label>
+              <SelectMenu
+                v-model="localSettings.video_generation.output_format"
+                :options="videoOutputOptions"
+                placement="up"
+                class="w-full"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <div class="ui-card">
+            <p class="ui-section-kicker">每日配额</p>
+            <div class="mt-4 space-y-3">
+              <Checkbox v-model="localSettings.quota_limits.enabled">
+                启用每日配额统计
+              </Checkbox>
+
+              <label class="block text-xs text-muted-foreground">对话每日上限</label>
+              <Input
+                :model-value="quotaTextDailyLimitInput"
+                type="number"
+                block
+                @update:model-value="quotaTextDailyLimitInput = $event"
+              />
+
+              <label class="block text-xs text-muted-foreground">绘图每日上限</label>
+              <Input
+                :model-value="quotaImagesDailyLimitInput"
+                type="number"
+                block
+                @update:model-value="quotaImagesDailyLimitInput = $event"
+              />
+
+              <label class="block text-xs text-muted-foreground">视频每日上限</label>
+              <Input
+                :model-value="quotaVideosDailyLimitInput"
+                type="number"
+                block
+                @update:model-value="quotaVideosDailyLimitInput = $event"
+              />
+            </div>
+          </div>
+
+          <div class="ui-card">
+            <p class="ui-section-kicker">公开展示</p>
+            <div class="mt-4 space-y-3">
+              <label class="block text-xs text-muted-foreground">Logo 地址</label>
+              <Input
+                v-model="localSettings.public_display.logo_url"
+                type="text"
+                block
+                placeholder="https://example.com/logo.svg"
+              />
+
+              <label class="block text-xs text-muted-foreground">聊天入口</label>
+              <Input
+                v-model="localSettings.public_display.chat_url"
+                type="text"
+                block
+                placeholder="https://example.com/chat"
+              />
+
+              <label class="block text-xs text-muted-foreground">会话有效时长（小时）</label>
+              <Input
+                :model-value="sessionExpireHoursInput"
+                type="number"
+                block
+                @update:model-value="sessionExpireHoursInput = $event"
+              />
             </div>
           </div>
         </div>
@@ -450,10 +236,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { Button, Checkbox, HelpTip, Input, SelectMenu } from 'nanocat-ui'
-import { useSettingsStore } from '@/stores/settings'
-import { defaultMailProvider, mailProviderOptions } from '@/constants/mailProviders'
+import { Button, Checkbox, Input, SelectMenu } from 'nanocat-ui'
 import { useToast } from '@/composables/useToast'
+import { useSettingsStore } from '@/stores/settings'
 import type { Settings } from '@/types/api'
 
 const settingsStore = useSettingsStore()
@@ -464,37 +249,38 @@ const localSettings = ref<Settings | null>(null)
 const isSaving = ref(false)
 const errorMessage = ref('')
 
-// 429冷却时间：小时 ↔ 秒 的转换
 const DEFAULT_COOLDOWN_HOURS = {
   text: 2,
   images: 4,
-  videos: 4
+  videos: 4,
 } as const
+
+const imageOutputOptions = [
+  { label: 'Base64 编码', value: 'base64' },
+  { label: 'URL 链接', value: 'url' },
+]
+
+const videoOutputOptions = [
+  { label: 'HTML 视频标签', value: 'html' },
+  { label: 'URL 链接', value: 'url' },
+  { label: 'Markdown 格式', value: 'markdown' },
+]
+
+const clampInteger = (
+  value: number,
+  min: number,
+  max: number = Number.MAX_SAFE_INTEGER,
+) => Math.max(min, Math.min(max, Math.round(value)))
 
 const toCooldownHours = (seconds: number | undefined, fallbackHours: number) => {
   if (!seconds) return fallbackHours
   return Math.max(1, Math.round(seconds / 3600))
 }
 
-const createCooldownHours = (
-  key: 'text_rate_limit_cooldown_seconds' | 'images_rate_limit_cooldown_seconds' | 'videos_rate_limit_cooldown_seconds',
-  fallbackHours: number
-) => computed({
-  get: () => toCooldownHours(localSettings.value?.retry?.[key], fallbackHours),
-  set: (hours: number) => {
-    if (localSettings.value?.retry) {
-      localSettings.value.retry[key] = hours * 3600
-    }
-  }
-})
-
-const clampInteger = (value: number, min: number, max: number = Number.MAX_SAFE_INTEGER) =>
-  Math.max(min, Math.min(max, Math.round(value)))
-
 const createNumberInputBinding = (
   getter: () => number | undefined,
   setter: (value: number) => void,
-  normalize: (value: number) => number = (value) => value
+  normalize: (value: number) => number = (value) => value,
 ) => computed({
   get: () => {
     const value = getter()
@@ -505,20 +291,21 @@ const createNumberInputBinding = (
     if (Number.isFinite(parsed)) {
       setter(normalize(parsed))
     }
-  }
+  },
 })
 
-const textRateLimitCooldownHours = createCooldownHours(
-  'text_rate_limit_cooldown_seconds',
-  DEFAULT_COOLDOWN_HOURS.text
-)
-const imagesRateLimitCooldownHours = createCooldownHours(
-  'images_rate_limit_cooldown_seconds',
-  DEFAULT_COOLDOWN_HOURS.images
-)
-const videosRateLimitCooldownHours = createCooldownHours(
-  'videos_rate_limit_cooldown_seconds',
-  DEFAULT_COOLDOWN_HOURS.videos
+const createCooldownHoursBinding = (
+  key: 'text_rate_limit_cooldown_seconds' | 'images_rate_limit_cooldown_seconds' | 'videos_rate_limit_cooldown_seconds',
+  fallbackHours: number,
+  maxHours = 24,
+) => createNumberInputBinding(
+  () => toCooldownHours(localSettings.value?.retry?.[key], fallbackHours),
+  (value) => {
+    if (localSettings.value?.retry) {
+      localSettings.value.retry[key] = value * 3600
+    }
+  },
+  (value) => clampInteger(value, 1, maxHours),
 )
 
 const maxAccountSwitchTriesInput = createNumberInputBinding(
@@ -528,31 +315,32 @@ const maxAccountSwitchTriesInput = createNumberInputBinding(
       localSettings.value.retry.max_account_switch_tries = value
     }
   },
-  (value) => clampInteger(value, 1)
+  (value) => clampInteger(value, 1, 20),
 )
 
-const textRateLimitCooldownHoursInput = createNumberInputBinding(
-  () => textRateLimitCooldownHours.value,
+const imageExpireHoursInput = createNumberInputBinding(
+  () => localSettings.value?.basic?.image_expire_hours,
   (value) => {
-    textRateLimitCooldownHours.value = value
+    if (localSettings.value?.basic) {
+      localSettings.value.basic.image_expire_hours = value
+    }
   },
-  (value) => clampInteger(value, 1, 24)
+  (value) => clampInteger(value, 1, 720),
 )
 
-const imagesRateLimitCooldownHoursInput = createNumberInputBinding(
-  () => imagesRateLimitCooldownHours.value,
-  (value) => {
-    imagesRateLimitCooldownHours.value = value
-  },
-  (value) => clampInteger(value, 1, 24)
+const textCooldownHoursInput = createCooldownHoursBinding(
+  'text_rate_limit_cooldown_seconds',
+  DEFAULT_COOLDOWN_HOURS.text,
 )
 
-const videosRateLimitCooldownHoursInput = createNumberInputBinding(
-  () => videosRateLimitCooldownHours.value,
-  (value) => {
-    videosRateLimitCooldownHours.value = value
-  },
-  (value) => clampInteger(value, 1, 24)
+const imagesCooldownHoursInput = createCooldownHoursBinding(
+  'images_rate_limit_cooldown_seconds',
+  DEFAULT_COOLDOWN_HOURS.images,
+)
+
+const videosCooldownHoursInput = createCooldownHoursBinding(
+  'videos_rate_limit_cooldown_seconds',
+  DEFAULT_COOLDOWN_HOURS.videos,
 )
 
 const sessionCacheTtlInput = createNumberInputBinding(
@@ -562,7 +350,7 @@ const sessionCacheTtlInput = createNumberInputBinding(
       localSettings.value.retry.session_cache_ttl_seconds = value
     }
   },
-  (value) => clampInteger(value, 0)
+  (value) => clampInteger(value, 0, 86400),
 )
 
 const autoRefreshAccountsSecondsInput = createNumberInputBinding(
@@ -572,17 +360,7 @@ const autoRefreshAccountsSecondsInput = createNumberInputBinding(
       localSettings.value.retry.auto_refresh_accounts_seconds = value
     }
   },
-  (value) => clampInteger(value, 0, 600)
-)
-
-const registerDefaultCountInput = createNumberInputBinding(
-  () => localSettings.value?.basic?.register_default_count,
-  (value) => {
-    if (localSettings.value?.basic) {
-      localSettings.value.basic.register_default_count = value
-    }
-  },
-  (value) => clampInteger(value, 1)
+  (value) => clampInteger(value, 0, 3600),
 )
 
 const quotaTextDailyLimitInput = createNumberInputBinding(
@@ -592,7 +370,7 @@ const quotaTextDailyLimitInput = createNumberInputBinding(
       localSettings.value.quota_limits.text_daily_limit = value
     }
   },
-  (value) => clampInteger(value, 0, 9999)
+  (value) => clampInteger(value, 0, 999999),
 )
 
 const quotaImagesDailyLimitInput = createNumberInputBinding(
@@ -602,7 +380,7 @@ const quotaImagesDailyLimitInput = createNumberInputBinding(
       localSettings.value.quota_limits.images_daily_limit = value
     }
   },
-  (value) => clampInteger(value, 0, 9999)
+  (value) => clampInteger(value, 0, 999999),
 )
 
 const quotaVideosDailyLimitInput = createNumberInputBinding(
@@ -612,7 +390,7 @@ const quotaVideosDailyLimitInput = createNumberInputBinding(
       localSettings.value.quota_limits.videos_daily_limit = value
     }
   },
-  (value) => clampInteger(value, 0, 9999)
+  (value) => clampInteger(value, 0, 999999),
 )
 
 const sessionExpireHoursInput = createNumberInputBinding(
@@ -622,120 +400,93 @@ const sessionExpireHoursInput = createNumberInputBinding(
       localSettings.value.session.expire_hours = value
     }
   },
-  (value) => clampInteger(value, 1)
+  (value) => clampInteger(value, 1, 720),
 )
 
-const browserEngineOptions = [
-  { label: 'DP - 支持无头/有头', value: 'dp' },
-]
-const browserModeOptions = [
-  { label: 'normal - 正常窗口', value: 'normal' },
-  { label: 'silent - 静默最小化', value: 'silent' },
-  { label: 'headless - 无头', value: 'headless' },
-]
-const tempMailProviderOptions = mailProviderOptions
-const imageOutputOptions = [
-  { label: 'Base64 编码', value: 'base64' },
-  { label: 'URL 链接', value: 'url' },
-]
-const videoOutputOptions = [
-  { label: 'HTML 视频标签', value: 'html' },
-  { label: 'URL 链接', value: 'url' },
-  { label: 'Markdown 格式', value: 'markdown' },
-]
 const imageModelOptions = computed(() => {
-  const baseOptions = [
+  const options = [
+    { label: 'Gemini Auto', value: 'gemini-auto' },
+    { label: 'Gemini 2.5 Flash', value: 'gemini-2.5-flash' },
+    { label: 'Gemini 2.5 Pro', value: 'gemini-2.5-pro' },
+    { label: 'Gemini 3 Flash Preview', value: 'gemini-3-flash-preview' },
     { label: 'Gemini 3 Pro Preview', value: 'gemini-3-pro-preview' },
     { label: 'Gemini 3.1 Pro Preview', value: 'gemini-3.1-pro-preview' },
-    { label: 'Gemini 3 Flash Preview', value: 'gemini-3-flash-preview' },
-    { label: 'Gemini 2.5 Pro', value: 'gemini-2.5-pro' },
-    { label: 'Gemini 2.5 Flash', value: 'gemini-2.5-flash' },
-    { label: 'Gemini Auto', value: 'gemini-auto' },
   ]
 
   const selected = localSettings.value?.image_generation.supported_models || []
   for (const value of selected) {
-    if (!baseOptions.some(option => option.value === value)) {
-      baseOptions.push({ label: value, value })
+    if (!options.some((option) => option.value === value)) {
+      options.push({ label: value, value })
     }
   }
 
-  return baseOptions
+  return options
 })
 
 watch(settings, (value) => {
   if (!value) return
-  const next = JSON.parse(JSON.stringify(value))
-  next.image_generation = next.image_generation || { enabled: false, supported_models: [], output_format: 'base64' }
-  next.image_generation.output_format ||= 'base64'
-  next.video_generation = next.video_generation || { output_format: 'html' }
-  next.video_generation.output_format ||= 'html'
+
+  const next = JSON.parse(JSON.stringify(value)) as Settings
   next.basic = next.basic || {}
-  next.basic.duckmail_base_url ||= 'https://api.duckmail.sbs'
-  next.basic.duckmail_verify_ssl = next.basic.duckmail_verify_ssl ?? true
-  next.basic.browser_engine = next.basic.browser_engine || 'dp'
-  const normalizedBrowserMode =
-    next.basic.browser_mode === 'normal' || next.basic.browser_mode === 'silent' || next.basic.browser_mode === 'headless'
-      ? next.basic.browser_mode
-      : ((next.basic.browser_headless ?? false) ? 'headless' : 'normal')
-  next.basic.browser_mode = normalizedBrowserMode
-  next.basic.browser_headless = normalizedBrowserMode === 'headless'
-  next.basic.refresh_window_hours = Number.isFinite(next.basic.refresh_window_hours)
-    ? next.basic.refresh_window_hours
-    : 1
-  next.basic.register_default_count = Number.isFinite(next.basic.register_default_count)
-    ? next.basic.register_default_count
-    : 1
-  next.basic.register_domain = typeof next.basic.register_domain === 'string'
-    ? next.basic.register_domain
-    : ''
-  next.basic.duckmail_api_key = typeof next.basic.duckmail_api_key === 'string'
-    ? next.basic.duckmail_api_key
-    : ''
-  next.basic.temp_mail_provider = next.basic.temp_mail_provider || defaultMailProvider
-  next.basic.moemail_base_url = next.basic.moemail_base_url || 'https://moemail.app'
-  next.basic.moemail_api_key = typeof next.basic.moemail_api_key === 'string'
-    ? next.basic.moemail_api_key
-    : ''
-  next.basic.moemail_domain = typeof next.basic.moemail_domain === 'string'
-    ? next.basic.moemail_domain
-    : ''
-  next.basic.freemail_base_url = next.basic.freemail_base_url || 'http://your-freemail-server.com'
-  next.basic.freemail_jwt_token = typeof next.basic.freemail_jwt_token === 'string'
-    ? next.basic.freemail_jwt_token
-    : ''
-  next.basic.freemail_verify_ssl = next.basic.freemail_verify_ssl ?? true
-  next.basic.freemail_domain = typeof next.basic.freemail_domain === 'string'
-    ? next.basic.freemail_domain
-    : ''
-  next.basic.mail_proxy_enabled = next.basic.mail_proxy_enabled ?? false
-  next.basic.gptmail_base_url = next.basic.gptmail_base_url || 'https://mail.chatgpt.org.uk'
-  next.basic.gptmail_api_key = typeof next.basic.gptmail_api_key === 'string'
-    ? next.basic.gptmail_api_key
-    : ''
-  next.basic.gptmail_verify_ssl = next.basic.gptmail_verify_ssl ?? true
-  next.basic.gptmail_domain = typeof next.basic.gptmail_domain === 'string'
-    ? next.basic.gptmail_domain
-    : ''
-  next.basic.cfmail_base_url = typeof next.basic.cfmail_base_url === 'string'
-    ? next.basic.cfmail_base_url
-    : ''
-  next.basic.cfmail_api_key = typeof next.basic.cfmail_api_key === 'string'
-    ? next.basic.cfmail_api_key
-    : ''
-  next.basic.cfmail_verify_ssl = next.basic.cfmail_verify_ssl ?? true
-  next.basic.cfmail_domain = typeof next.basic.cfmail_domain === 'string'
-    ? next.basic.cfmail_domain
-    : ''
-  next.basic.samplemail_base_url = typeof next.basic.samplemail_base_url === 'string'
-    ? next.basic.samplemail_base_url
-    : ''
-  next.basic.samplemail_verify_ssl = next.basic.samplemail_verify_ssl ?? true
-  next.retry = next.retry || {}
+  next.basic.api_key = typeof next.basic.api_key === 'string' ? next.basic.api_key : ''
+  next.basic.base_url = typeof next.basic.base_url === 'string' ? next.basic.base_url : ''
+  next.basic.proxy_for_chat = typeof next.basic.proxy_for_chat === 'string' ? next.basic.proxy_for_chat : ''
+  next.basic.image_expire_hours = Number.isFinite(next.basic.image_expire_hours)
+    ? next.basic.image_expire_hours
+    : 24
+
+  next.retry = next.retry || {
+    max_account_switch_tries: 3,
+    text_rate_limit_cooldown_seconds: 7200,
+    images_rate_limit_cooldown_seconds: 14400,
+    videos_rate_limit_cooldown_seconds: 14400,
+    session_cache_ttl_seconds: 0,
+    auto_refresh_accounts_seconds: 60,
+  }
+  next.retry.max_account_switch_tries = Number.isFinite(next.retry.max_account_switch_tries)
+    ? next.retry.max_account_switch_tries
+    : 3
+  next.retry.text_rate_limit_cooldown_seconds = Number.isFinite(next.retry.text_rate_limit_cooldown_seconds)
+    ? next.retry.text_rate_limit_cooldown_seconds
+    : 7200
+  next.retry.images_rate_limit_cooldown_seconds = Number.isFinite(next.retry.images_rate_limit_cooldown_seconds)
+    ? next.retry.images_rate_limit_cooldown_seconds
+    : 14400
+  next.retry.videos_rate_limit_cooldown_seconds = Number.isFinite(next.retry.videos_rate_limit_cooldown_seconds)
+    ? next.retry.videos_rate_limit_cooldown_seconds
+    : 14400
+  next.retry.session_cache_ttl_seconds = Number.isFinite(next.retry.session_cache_ttl_seconds)
+    ? next.retry.session_cache_ttl_seconds
+    : 0
   next.retry.auto_refresh_accounts_seconds = Number.isFinite(next.retry.auto_refresh_accounts_seconds)
     ? next.retry.auto_refresh_accounts_seconds
     : 60
-  next.quota_limits = next.quota_limits || {}
+
+  next.image_generation = next.image_generation || {
+    enabled: false,
+    supported_models: [],
+    output_format: 'base64',
+  }
+  next.image_generation.enabled = next.image_generation.enabled ?? false
+  next.image_generation.supported_models = Array.isArray(next.image_generation.supported_models)
+    ? next.image_generation.supported_models
+    : []
+  next.image_generation.output_format =
+    next.image_generation.output_format === 'url' ? 'url' : 'base64'
+
+  next.video_generation = next.video_generation || { output_format: 'html' }
+  next.video_generation.output_format = next.video_generation.output_format === 'url'
+    ? 'url'
+    : next.video_generation.output_format === 'markdown'
+      ? 'markdown'
+      : 'html'
+
+  next.quota_limits = next.quota_limits || {
+    enabled: true,
+    text_daily_limit: 120,
+    images_daily_limit: 2,
+    videos_daily_limit: 1,
+  }
   next.quota_limits.enabled = next.quota_limits.enabled ?? true
   next.quota_limits.text_daily_limit = Number.isFinite(next.quota_limits.text_daily_limit)
     ? next.quota_limits.text_daily_limit
@@ -746,26 +497,36 @@ watch(settings, (value) => {
   next.quota_limits.videos_daily_limit = Number.isFinite(next.quota_limits.videos_daily_limit)
     ? next.quota_limits.videos_daily_limit
     : 1
+
+  next.public_display = next.public_display || {}
+  next.public_display.logo_url = typeof next.public_display.logo_url === 'string'
+    ? next.public_display.logo_url
+    : ''
+  next.public_display.chat_url = typeof next.public_display.chat_url === 'string'
+    ? next.public_display.chat_url
+    : ''
+
+  next.session = next.session || { expire_hours: 24 }
+  next.session.expire_hours = Number.isFinite(next.session.expire_hours)
+    ? next.session.expire_hours
+    : 24
+
   localSettings.value = next
-})
+}, { immediate: true })
 
 onMounted(async () => {
-  await settingsStore.loadSettings()
+  if (!settings.value) {
+    await settingsStore.loadSettings()
+  }
 })
 
 const handleSave = async () => {
   if (!localSettings.value) return
+
   errorMessage.value = ''
   isSaving.value = true
 
   try {
-    localSettings.value.basic.browser_mode =
-      localSettings.value.basic.browser_mode === 'normal' ||
-      localSettings.value.basic.browser_mode === 'silent' ||
-      localSettings.value.basic.browser_mode === 'headless'
-        ? localSettings.value.basic.browser_mode
-        : 'normal'
-    localSettings.value.basic.browser_headless = localSettings.value.basic.browser_mode === 'headless'
     await settingsStore.updateSettings(localSettings.value)
     toast.success('设置保存成功')
   } catch (error: any) {
