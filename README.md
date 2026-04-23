@@ -2,218 +2,192 @@
   <img src="docs/logo.svg" width="120" alt="Gemini Business2API logo" />
 </p>
 <h1 align="center">Gemini Business2API</h1>
-<p align="center">Gemini Business → OpenAI 兼容 API</p>
+<p align="center">Gemini Business → OpenAI 兼容 API 网关</p>
 <p align="center">
   <strong>简体中文</strong> | <a href="docs/README_EN.md">English</a>
 </p>
 <p align="center"><img src="https://img.shields.io/badge/License-CNC--1.0-red.svg" /> <img src="https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white" /> <img src="https://img.shields.io/badge/FastAPI-0.110-009688?logo=fastapi&logoColor=white" /> <img src="https://img.shields.io/badge/Vue-3-4FC08D?logo=vue.js&logoColor=white" /> <img src="https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white" /> <img src="https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white" /></p>
 
-<p align="center">支持多账号轮询、多模态、图像/视频生成与内置管理面板。</p>
+<p align="center">聚焦 2API 主服务、管理后台与可选 refresh-worker。</p>
 
 ---
 
-## 📜 开源协议与声明
+## 项目定位
 
-**开源协议**: Cooperative Non-Commercial License (CNC-1.0) - 查看 [LICENSE](LICENSE) 文件了解详情
-
-### ⚠️ 严禁滥用：禁止将本工具用于商业用途或任何形式的滥用（无论规模大小）
-
-**本工具严禁用于以下行为：**
-- 商业用途或盈利性使用
-- 任何形式的批量操作或自动化滥用（无论规模大小）
-- 破坏市场秩序或恶意竞争
-- 违反 Google 服务条款的任何行为
-- 违反 Microsoft 服务条款的任何行为
-
-**违规后果**：滥用行为可能导致账号永久封禁、法律追责，一切后果由使用者自行承担。
-
-**合法用途**：本项目仅限个人学习、技术研究与非商业性技术交流。
-
-📖 **完整声明与免责条款**：[DISCLAIMER.md](docs/DISCLAIMER.md)
+Gemini Business2API 是一个把 [Gemini Business](https://business.google.com) 能力转换为 **OpenAI 兼容接口** 的网关服务，内置后台管理面板，适合统一管理账号池、系统设置、图片 / 视频能力与运行状态。
 
 ---
 
-## 💬 社区交流
+## 社区交流
 
-点击链接加入群聊【business2api交流群】：[https://qm.qq.com/q/yegwCqJisS](https://qm.qq.com/q/yegwCqJisS)
+点击链接加入群聊【business2api 交流群】：
 
-## 🗺️ 路线图预告
-
-- 预告：`gemini-web` 逆向方向的技术研究分享、、
+- [https://qm.qq.com/q/yegwCqJisS](https://qm.qq.com/q/yegwCqJisS)
 
 ---
 
-## ✨ 功能特性
+## 核心能力
 
-- ✅ OpenAI API 完全兼容 - 无缝对接现有工具
-- ✅ 多账号负载均衡 - 轮询与故障自动切换
-- ✅ 多账号配置管理 - 支持批量导入导出、状态筛选、启停与在线编辑
-- ✅ 流式输出 - 实时响应
-- ✅ 多模态输入 - 100+ 文件类型（图片、PDF、Office 文档、音频、视频、代码等）
-- ✅ 图片生成 & 图生图 - 模型可配置，Base64 或 URL 返回
-- ✅ 视频生成 - 专用模型，支持 HTML/URL/Markdown 输出格式
-- ✅ 智能文件处理 - 自动识别文件类型，支持 URL 与 Base64
-- ✅ 日志与监控 - 实时状态与统计信息
-- ✅ 代理支持 - 通过设置面板配置
-- ✅ 内置管理面板 - 在线配置与账号管理
-- ✅ PostgreSQL / SQLite 存储 - 账户/设置/统计持久化
-
-## 🤖 模型功能
-
-| 模型ID                   | 识图 | 原生联网 | 文件多模态 | 图片生成 | 视频生成 |
-| ------------------------ | ---- | -------- | ---------- | -------- | -------- |
-| `gemini-auto`            | ✅    | ✅        | ✅          | 可选     | -        |
-| `gemini-2.5-flash`       | ✅    | ✅        | ✅          | 可选     | -        |
-| `gemini-2.5-pro`         | ✅    | ✅        | ✅          | 可选     | -        |
-| `gemini-3-flash-preview` | ✅    | ✅        | ✅          | 可选     | -        |
-| `gemini-3.1-pro-preview` | ✅    | ✅        | ✅          | 可选     | -        |
-| `gemini-imagen`          | ✅    | ✅        | ✅          | ✅        | -        |
-| `gemini-veo`             | ✅    | ✅        | ✅          | -        | ✅        |
-
-> `gemini-imagen`：专用图片生成模型 · `gemini-veo`：专用视频生成模型
+- ✅ OpenAI API 兼容：可直接对接常见 OpenAI 客户端与中间层
+- ✅ 多账号调度：支持轮询、可用性切换与批量管理
+- ✅ 账号管理后台：导入 / 导出 / 编辑 / 批量操作 / 状态筛选
+- ✅ 多模态能力：支持文本、文件、图片、视频相关能力
+- ✅ 图片生成 / 图生图：支持 Base64 或 URL 返回
+- ✅ 视频生成：支持统一配置与输出格式控制
+- ✅ 系统设置集中管理：代理、邮箱、刷新、输出格式等统一收口
+- ✅ 仪表盘 / 监控 / 日志：便于观察服务状态与账号池情况
+- ✅ SQLite / PostgreSQL：支持本地持久化与多实例共享数据
+- ✅ 可选 refresh-worker：通过 Docker Compose profile 独立启用
 
 ---
 
-## 🚀 快速开始
+## 部署架构
+
+```text
+docker-compose.yml
+├─ gemini-api
+│  ├─ 运行 2API 主服务
+│  ├─ 运行管理后台
+│  ├─ 暴露 7860
+│  └─ 挂载 ./data:/app/data
+│
+└─ refresh-worker（可选）
+   ├─ 默认不启动
+   ├─ 使用 profile refresh 启动
+   ├─ 不暴露业务 API
+   ├─ 读取同一个 ./data
+   └─ 负责账号刷新
+```
+
+启动方式：
+
+- 只跑 2API：`docker compose up -d`
+- 2API + refresh-worker：`docker compose --profile refresh up -d`
+
+说明：
+
+- `refresh-worker` 由独立的 `refresh-worker` 分支维护
+- 该分支通过 GitHub Actions 自动构建并发布 refresh-worker Docker 镜像
+- 主线 `docker-compose.yml` 通过 `REFRESH_WORKER_IMAGE` / `--profile refresh` 直接接入该镜像
+
+---
+
+## 快速开始
 
 ### 方式一：Docker Compose（推荐）
 
-**支持 ARM64 和 AMD64 架构**
+支持 ARM64 / AMD64。
 
 ```bash
-git clone https://github.com/Dreamy-rain/gemini-business2api.git
+git clone https://github.com/yukkcat/gemini-business2api.git
 cd gemini-business2api
 cp .env.example .env
-# 编辑 .env 设置 ADMIN_KEY
+# 编辑 .env，至少设置 ADMIN_KEY
 
 docker compose up -d
-
-# 查看日志
-docker compose logs -f
-
-# 更新到最新版本
-docker compose pull && docker compose up -d
 ```
 
----
-
-### 方式二：安装脚本
-
-> **前置要求**：Git、Node.js & npm（构建前端用）。脚本会自动安装 Python 3.11 和 uv。
-
-**Linux / macOS / WSL：**
-```bash
-git clone https://github.com/Dreamy-rain/gemini-business2api.git
-cd gemini-business2api
-bash setup.sh
-# 编辑 .env 设置 ADMIN_KEY
-source .venv/bin/activate
-python main.py
-# pm2 后台运行
-pm2 start main.py --name gemini-api --interpreter ./.venv/bin/python3
-```
-
-**Windows：**
-```cmd
-git clone https://github.com/Dreamy-rain/gemini-business2api.git
-cd gemini-business2api
-setup.bat
-# 编辑 .env 设置 ADMIN_KEY
-.venv\Scripts\activate.bat
-python main.py
-# pm2 后台运行
-pm2 start main.py --name gemini-api --interpreter ./.venv/Scripts/python.exe
-```
-
-安装脚本会自动完成：uv 安装、Python 3.11 下载、依赖安装、前端构建、`.env` 创建。
-更新项目时重新运行同一脚本即可。
-
----
-
-### 方式三：手动部署
+如果需要启用 refresh-worker：
 
 ```bash
-git clone https://github.com/Dreamy-rain/gemini-business2api.git
-cd gemini-business2api
-
-curl -LsSf https://astral.sh/uv/install.sh | sh
-uv python install 3.11
-
-cd frontend && npm install && npm run build && cd ..
-
-uv venv --python 3.11 .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate.bat
-uv pip install -r requirements.txt
-
-cp .env.example .env
-# 编辑 .env 设置 ADMIN_KEY
-python main.py
+docker compose --profile refresh up -d
 ```
 
 ---
 
-### 访问方式
+### 方式二：交互式安装脚本（Linux / macOS / WSL / Git Bash）
 
-- **管理面板**：`http://localhost:7860/`（使用 `ADMIN_KEY` 登录）
-- **API 接口**：`http://localhost:7860/v1/chat/completions`
-
----
-
-## 🗄️ 数据库持久化
-
-默认不配置 `DATABASE_URL`，直接使用 SQLite（本地 `data.db`，推荐）。
-仅在必要场景（如多实例共享同一份数据、云平台无法挂载持久化目录）再使用在线数据库。
-
-**配置方式：**
-- 本地部署 → 写入 `.env`
-- 云平台 → 在平台环境变量中设置
-
-```
-DATABASE_URL=postgresql://user:password@host/dbname?sslmode=require
-```
-
-**如需在线 PostgreSQL（可选）：**
-
-| 服务                      | 免费额度                 | 获取方式                                       |
-| ------------------------- | ------------------------ | ---------------------------------------------- |
-| [Neon](https://neon.tech) | 512MB 存储 / 100 CPUH 月 | 注册 → Create Project → 复制 Connection string |
-| [Aiven](https://aiven.io) | 额度更充裕               | 注册 → 创建 PostgreSQL 服务 → 复制连接串       |
-
-> `postgres://` 和 `postgresql://` 两种格式均可直接使用，无需手动转换。
-
-<details>
-<summary>⚠️ 常见问题：定期保存失败 / ConnectionDoesNotExistError</summary>
-
-如果日志出现类似以下错误：
-
-```
-ERROR [COOLDOWN] 冷却期保存失败: connection was closed in the middle of operation
-asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
-```
-
-这是因为部分免费 PostgreSQL 服务（如 Aiven 免费版）会主动关闭长时间空闲的连接。**不影响正常使用**，下次操作会自动重新连接。如频繁出现，建议换用 [Neon](https://neon.tech) 或升级数据库套餐。
-
-</details>
-
-<details>
-<summary>📦 数据库迁移（从旧版升级）</summary>
-
-如果有旧的本地文件（`accounts.json` / `settings.yaml` / `stats.json`），运行迁移脚本：
+主线现在统一使用 `deploy/install.sh`。
 
 ```bash
-python scripts/migrate_to_database.py
+curl -fsSL https://raw.githubusercontent.com/yukkcat/gemini-business2api/main/deploy/install.sh | sudo bash
 ```
 
-迁移脚本会自动检测环境（PostgreSQL / SQLite），迁移完成后自动重命名旧文件。
+启用 refresh-worker：
 
+```bash
+curl -fsSL https://raw.githubusercontent.com/yukkcat/gemini-business2api/main/deploy/install.sh | sudo bash -s -- --with-refresh
+```
 
-</details>
+脚本支持两条路径：
+
+- Docker 部署
+- Python 本地启动（开发 / 调试）
+
+也可以在仓库内运行：
+
+```bash
+bash deploy/install.sh
+```
 
 ---
 
-## 📡 API 接口
+### 方式三：Python 本地开发
 
-完全兼容 OpenAI API 格式，可直接对接 ChatGPT-Next-Web、LobeChat、OpenCat 等客户端。
+适合开发、调试或本地改代码。
+
+```bash
+git clone https://github.com/yukkcat/gemini-business2api.git
+cd gemini-business2api
+bash deploy/install.sh --mode python
+```
+
+脚本会引导你完成：
+
+- Python 3.11 / uv 检查
+- `.venv` 创建或复用
+- Python 依赖安装
+- 前端构建
+- `.env` 初始化
+- 可选直接启动 `python main.py`
+
+---
+
+### 访问地址
+
+- 管理面板：`http://localhost:7860/`
+- OpenAI 兼容接口：`http://localhost:7860/v1/chat/completions`
+- 健康检查：`http://localhost:7860/health`
+
+---
+
+## 配置与数据边界
+
+### `.env` 关键项
+
+```env
+ADMIN_KEY=your-admin-login-key
+# PORT=7860
+# DATABASE_URL=postgresql://user:password@host:5432/dbname?sslmode=require
+# REFRESH_WORKER_IMAGE=cooooookk/gemini-refresh-worker:latest
+# REFRESH_HEALTH_PORT=8080
+```
+
+其中：
+
+- `gemini-business2api` 主服务镜像由主线构建
+- `REFRESH_WORKER_IMAGE` 默认指向独立 `refresh-worker` 分支产出的镜像
+
+### 数据目录
+
+Compose 默认挂载：
+
+```text
+./data -> /app/data
+```
+
+这里会保存：
+
+- SQLite 数据库
+- 运行时持久化数据
+- 本地生成文件与缓存数据
+
+如果不配置 `DATABASE_URL`，默认使用本地 SQLite。
+如果配置了 `DATABASE_URL`，则可以切到 PostgreSQL。
+
+---
+
+## API 兼容接口
 
 | 接口                     | 方法 | 说明                 |
 | ------------------------ | ---- | -------------------- |
@@ -223,7 +197,7 @@ python scripts/migrate_to_database.py
 | `/v1/images/edits`       | POST | 图片编辑（图生图）   |
 | `/health`                | GET  | 健康检查             |
 
-**调用示例：**
+调用示例：
 
 ```bash
 curl http://localhost:7860/v1/chat/completions \
@@ -236,63 +210,38 @@ curl http://localhost:7860/v1/chat/completions \
   }'
 ```
 
-> `API_KEY` 在管理面板 → 系统设置中配置，留空则公开访问，支持多个 Key 逗号分隔。
+> `API_KEY` 在后台系统设置中配置；留空则表示公开访问。
 
 ---
 
-## 🌐 推荐部署平台
+## 常用运维命令
 
-除本地 Docker Compose 外，以下平台均支持 Docker 镜像部署：
+```bash
+# 查看服务状态
+docker compose ps
 
-| 平台                             | 免费额度  | 特点                                   |
-| -------------------------------- | --------- | -------------------------------------- |
-| [Render](https://render.com)     | ✅ 有      | 支持 Docker、自动 SSL、免费 PostgreSQL |
-| [Railway](https://railway.app)   | $5/月额度 | 一键 Docker 部署、自带数据库           |
-| [Fly.io](https://fly.io)         | ✅ 有      | 全球边缘部署、支持持久化卷             |
-| [Claw Cloud](https://claw.cloud) | ✅ 有      | 容器云平台，简单易用                   |
-| 自建 VPS（推荐）                 | —         | 完全可控，配合 Docker Compose          |
+# 查看主服务日志
+docker compose logs -f gemini-api
 
-> Docker 镜像：`cooooookk/gemini-business2api:latest`
->
-> 部署时先设置 `ADMIN_KEY`；`DATABASE_URL` 仅在必要时再配置（默认本地 `data.db` 更推荐）。
+# 启动主服务
+docker compose up -d
 
-### Zeabur 部署教程
+# 启动主服务 + refresh-worker
+docker compose --profile refresh up -d
 
-1. Fork 本仓库到你的 GitHub
-2. 登录 [Zeabur](https://zeabur.com) → **创建项目** → **共享集群** → **部署新服务** → **连接 GitHub** → 选择 Fork 的仓库
-3. 添加环境变量：
+# 停止 refresh-worker
+docker compose --profile refresh stop refresh-worker
 
-   | 变量名         | 必填 | 说明                                          |
-   | -------------- | ---- | --------------------------------------------- |
-   | `ADMIN_KEY`    | ✅    | 管理面板登录密钥                              |
-   | `DATABASE_URL` | 可选 | PostgreSQL 连接串（仅在需要在线数据库时配置） |
+# 更新镜像
+docker compose pull && docker compose up -d
 
-4. **持久化挂载目录**（重要）：
-
-   在服务设置中添加持久化存储：
-
-   | 硬盘 ID | 挂载目录    |
-   | ------- | ----------- |
-   | `data`  | `/app/data` |
-
-5. 点击 **重新部署** 使配置生效
-
-**更新方式**：GitHub 仓库 → **Sync fork** → **Update branch**，Zeabur 会自动重新部署。
+# 停止全部服务
+docker compose down
+```
 
 ---
 
-## 🌿 主线说明
-
-当前 `main` / `beta` 分支聚焦于 **Gemini Business 2API 网关** 与 **管理面板**：
-
-- `main`：稳定主线，适合生产部署
-- `beta`：预发布线，新功能会先在这里验证
-
-注册、刷新、特殊代理链路等实验能力已拆分到专门分支或独立仓库，不再作为当前主线 README 的默认使用方式。
-
----
-
-## 📸 功能展示
+## 功能展示
 
 ### 管理系统
 
@@ -324,13 +273,28 @@ curl http://localhost:7860/v1/chat/completions \
   </tr>
 </table>
 
-### 更多文档
+---
 
-- 支持的文件类型：[SUPPORTED_FILE_TYPES.md](docs/SUPPORTED_FILE_TYPES.md)
-- 刷新架构与配置边界：[refresh-architecture.md](docs/refresh-architecture.md)
 
 ## ⭐ Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Dreamy-rain/gemini-business2api&type=date&legend=top-left)](https://www.star-history.com/#Dreamy-rain/gemini-business2api&type=date&legend=top-left)
+[![Star History Chart](https://api.star-history.com/svg?repos=yukkcat/gemini-business2api&type=date&legend=top-left)](https://www.star-history.com/#yukkcat/gemini-business2api&type=date&legend=top-left)
 
-**如果这个项目对你有帮助，请给个 ⭐ Star!**
+如果这个项目对你有帮助，欢迎点一个 ⭐ Star。
+
+---
+
+## 开源协议与使用说明
+
+本项目采用 **Cooperative Non-Commercial License (CNC-1.0)**。
+
+使用边界：
+
+- 允许：个人学习、技术研究、非商业交流
+- 禁止：商业用途、盈利性服务、批量滥用、违反 Google / Microsoft 服务条款的使用方式
+
+相关文件：
+
+- 协议文本：[`LICENSE`](LICENSE)
+- 中文免责声明：[`docs/DISCLAIMER.md`](docs/DISCLAIMER.md)
+- 英文免责声明：[`docs/DISCLAIMER_EN.md`](docs/DISCLAIMER_EN.md)

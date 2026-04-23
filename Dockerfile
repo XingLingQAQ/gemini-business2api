@@ -18,20 +18,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     TZ=Asia/Shanghai
 
-# 安装 Python 依赖和浏览器依赖（合并为单一 RUN 指令以减少层数）
+# 安装主服务运行所需依赖
 COPY requirements.txt .
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         gcc \
         curl \
-        tzdata \
-        chromium chromium-driver \
-        dbus dbus-x11 \
-        xvfb xauth \
-        libglib2.0-0 libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 \
-        libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 \
-        libxfixes3 libxrandr2 libgbm1 libasound2 libpango-1.0-0 \
-        libcairo2 fonts-liberation fonts-noto-cjk && \
+        tzdata && \
     ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
     pip install --no-cache-dir -r requirements.txt && \
     apt-get purge -y gcc && \
@@ -39,31 +32,22 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # 复制后端代码
-COPY main.py .
-COPY VERSION .
+COPY app ./app
 COPY core ./core
 COPY util ./util
-COPY scripts ./scripts
+COPY main.py .
+COPY VERSION .
 
-# 从 builder 阶段只复制构建好的静态文件
+# 复制构建好的前端静态文件
 COPY --from=frontend-builder /app/static ./static
 
-# 创建数据目录
+# 运行所需目录
 RUN mkdir -p ./data
 
-# 复制启动脚本
-COPY entrypoint.sh .
-RUN chmod +x entrypoint.sh
-
-# 声明数据卷
 VOLUME ["/app/data"]
-
-# 声明端口
 EXPOSE 7860
 
-# 健康检查
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:7860/health || exit 1
 
-# 启动服务
-CMD ["./entrypoint.sh"]
+CMD ["python", "-u", "main.py"]
