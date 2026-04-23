@@ -1,6 +1,6 @@
 import type { ActionMenuItem } from 'nanocat-ui'
 import type { AdminAccount } from '@/types/api'
-import { getAccountStateMeta } from './accountState'
+import { getAccountStateMeta, resolveAccountStateCode } from './accountState'
 
 export const accountBatchMenuItems: ActionMenuItem[] = [
   { key: 'enable', label: '批量启用' },
@@ -19,15 +19,28 @@ export const shouldShowDisableAccount = (account: AdminAccount) => getAccountSta
 export const getAccountRowClass = (account: AdminAccount) => getAccountStateMeta(account).rowClass
 
 export const displayRemaining = (value: string) => {
-  if (value === '已过期') return '过期'
-  if (value === '未设置') return '未设置'
+  const normalized = String(value || '').trim().toLowerCase()
+  if (normalized === 'expired' || value === '已过期') return '过期'
+  if (normalized === 'not set' || value === '未设置') return '未设置'
   return value
 }
 
 export const getRemainingClass = (account: AdminAccount) => {
-  if (account.status === '已过期') return 'text-rose-600'
-  if (account.status === '即将过期') return 'text-amber-700'
-  if (account.status === '未设置') return 'text-muted-foreground'
+  const stateCode = resolveAccountStateCode(account)
+  if (stateCode === 'expired') return 'text-rose-600'
+  if (stateCode === 'expiring_soon' || stateCode === 'rate_limited') return 'text-amber-700'
+  if (
+    stateCode === 'manual_disabled'
+    || stateCode === 'access_restricted'
+    || stateCode === 'unavailable'
+  ) {
+    return 'text-muted-foreground'
+  }
+
+  const remainingDisplay = String(account.remaining_display || '').trim().toLowerCase()
+  if (remainingDisplay === 'not set' || account.expires_at === '未设置' || account.expires_at === 'Not set') {
+    return 'text-muted-foreground'
+  }
   return 'text-emerald-600'
 }
 

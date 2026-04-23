@@ -30,7 +30,9 @@ These values are shared defaults used by the standalone refresh worker:
 - refresh batch / cooldown / auto-register thresholds
 - register domain and default register count
 
-These values are exposed by `GET /admin/settings` as `refresh_settings`, and are still mirrored into legacy `basic` / `retry` fields for compatibility.
+These values are exposed by `GET /admin/settings` as `refresh_settings`.
+
+The database stores them in canonical `refresh_settings` form. Inside the main service they are mapped back into runtime `basic` / `retry` fields so existing in-process code can keep reading a stable config object.
 
 ### 2. Per-account mail configuration
 

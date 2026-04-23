@@ -86,18 +86,33 @@ const ACCOUNT_STATE_META: Record<AccountStateCode, AccountStateMeta> = {
   },
 }
 
+const includesStateText = (value: string | null | undefined, patterns: string[]) => {
+  const normalized = String(value || '').trim().toLowerCase()
+  return patterns.some((pattern) => normalized.includes(pattern))
+}
+
 const getFallbackStateCode = (account: AdminAccount): AccountStateCode => {
-  if (account.cooldown_reason?.includes('429') && account.cooldown_seconds > 0) {
+  if (account.cooldown_seconds > 0) {
     return 'rate_limited'
   }
   if (account.disabled) {
-    if (account.disabled_reason?.includes('403')) {
+    if (includesStateText(account.disabled_reason, ['403', 'access restricted'])) {
       return 'access_restricted'
     }
     return 'manual_disabled'
   }
-  if (account.status === '已过期') return 'expired'
-  if (account.status === '即将过期') return 'expiring_soon'
+  if ((account.quota_status?.limited_count ?? 0) > 0) {
+    return 'quota_limited'
+  }
+  if (
+    typeof account.remaining_hours === 'number'
+    && account.remaining_hours > 0
+    && account.remaining_hours < 3
+  ) {
+    return 'expiring_soon'
+  }
+  if (includesStateText(account.status, ['expired', '已过期'])) return 'expired'
+  if (includesStateText(account.status, ['expiring soon', '即将过期'])) return 'expiring_soon'
   if (account.is_available === false) return 'unavailable'
   return 'active'
 }

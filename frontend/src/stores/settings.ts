@@ -7,7 +7,6 @@ export const useSettingsStore = defineStore('settings', () => {
   const settings = ref<Settings | null>(null)
   const isLoading = ref(false)
 
-  // 加载设置
   async function loadSettings() {
     isLoading.value = true
     try {
@@ -17,10 +16,8 @@ export const useSettingsStore = defineStore('settings', () => {
     }
   }
 
-  // 更新设置
   async function updateSettings(newSettings: Settings) {
-    await settingsApi.update(newSettings)
-    settings.value = newSettings
+    settings.value = await settingsApi.update(newSettings)
   }
 
   return {

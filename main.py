@@ -7,23 +7,17 @@ from dotenv import load_dotenv
 
 import httpx
 import aiofiles
-from fastapi import FastAPI, HTTPException, Header, Request, Form, UploadFile, File
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import HTTPException, Header, Request, Form, UploadFile, File
 from fastapi.responses import StreamingResponse
-from fastapi.staticfiles import StaticFiles
 from util.streaming_parser import parse_json_array_stream_async
 from collections import deque
 from threading import Lock
 from core.database import stats_db
-from app.api.routers import (
-    AccountRouteDeps,
-    SettingsRouteDeps,
-    SystemRouteDeps,
-    register_account_routes,
-    register_settings_routes,
-    register_system_routes,
-)
+from app.bootstrap import RouteBootstrapDeps, register_http_routes
+from app.factory import AppFactorySettings, create_http_app, mount_media_assets
+from app.lifecycle import LifecycleDeps, register_lifecycle_hooks
 from app.api.schemas import ChatRequest, ImageGenerationRequest, Message
+from app.services.gallery_service import cleanup_expired_gallery_payload
 
 # ---------- 数据目录配置 ----------
 DATA_DIR = "./data"
@@ -512,169 +506,21 @@ def process_media(data: bytes, mime: str, chat_id: str, file_id: str, base_url: 
     else:
         return process_image(data, mime, chat_id, file_id, base_url, idx, request_id, account_id)
 
-# ---------- OpenAI 兼容接口 ----------
-app = FastAPI(title="Gemini-Business OpenAI Gateway")
-
 frontend_origin = os.getenv("FRONTEND_ORIGIN", "").strip()
 allow_all_origins = os.getenv("ALLOW_ALL_ORIGINS", "0") == "1"
-if allow_all_origins and not frontend_origin:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=False,
-        allow_methods=["*"],
-        allow_headers=["*"],
+app = create_http_app(
+    AppFactorySettings(
+        frontend_origin=frontend_origin,
+        allow_all_origins=allow_all_origins,
+        session_secret_key=SESSION_SECRET_KEY,
+        session_expire_hours=SESSION_EXPIRE_HOURS,
     )
-elif frontend_origin:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=[frontend_origin],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
-app.mount("/static", StaticFiles(directory="static"), name="static")
-if os.path.exists(os.path.join("static", "assets")):
-    app.mount("/assets", StaticFiles(directory=os.path.join("static", "assets")), name="assets")
-if os.path.exists(os.path.join("static", "vendor")):
-    app.mount("/vendor", StaticFiles(directory=os.path.join("static", "vendor")), name="vendor")
-
-# ---------- Session 中间件配置 ----------
-from starlette.middleware.sessions import SessionMiddleware
-app.add_middleware(
-    SessionMiddleware,
-    secret_key=SESSION_SECRET_KEY,
-    max_age=SESSION_EXPIRE_HOURS * 3600,  # 转换为秒
-    same_site="lax",
-    https_only=False  # 本地开发可设为False，生产环境建议True
 )
 
-# ---------- Uptime 追踪中间件 ----------
-@app.middleware("http")
-async def track_uptime_middleware(request: Request, call_next):
-    """Uptime 监控：跟踪非对话接口的请求结果。"""
-    path = request.url.path
-    if (
-        path.startswith("/images/")
-        or path.startswith("/public/")
-        or path.startswith("/favicon")
-        or path.endswith("/v1/chat/completions")
-    ):
-        return await call_next(request)
-
-    start_time = time.time()
-
-    try:
-        response = await call_next(request)
-        latency_ms = int((time.time() - start_time) * 1000)
-        success = response.status_code < 400
-        uptime_tracker.record_request("api_service", success, latency_ms, response.status_code)
-        return response
-
-    except Exception:
-        uptime_tracker.record_request("api_service", False)
-        raise
-
-
 # ---------- 图片和视频静态服务初始化 ----------
-os.makedirs(IMAGE_DIR, exist_ok=True)
-os.makedirs(VIDEO_DIR, exist_ok=True)
-app.mount("/images", StaticFiles(directory=IMAGE_DIR), name="images")
-app.mount("/videos", StaticFiles(directory=VIDEO_DIR), name="videos")
+mount_media_assets(app, IMAGE_DIR, VIDEO_DIR)
 logger.info(f"[SYSTEM] 图片静态服务已启用: /images/ -> {IMAGE_DIR}")
 logger.info(f"[SYSTEM] 视频静态服务已启用: /videos/ -> {VIDEO_DIR}")
-
-# ---------- 后台任务启动 ----------
-
-@app.on_event("startup")
-async def startup_event():
-    """应用启动时初始化后台任务"""
-    global global_stats
-
-    # 加载统计数据
-    global_stats = await load_stats()
-    global_stats.setdefault("request_timestamps", [])
-    global_stats.setdefault("model_request_timestamps", {})
-    global_stats.setdefault("failure_timestamps", [])
-    global_stats.setdefault("rate_limit_timestamps", [])
-    global_stats.setdefault("recent_conversations", [])
-    global_stats.setdefault("success_count", 0)
-    global_stats.setdefault("failed_count", 0)
-    global_stats.setdefault("account_conversations", {})
-    global_stats.setdefault("account_failures", {})
-    uptime_tracker.configure_storage(os.path.join(DATA_DIR, "uptime.json"))
-    uptime_tracker.load_heartbeats()
-    for account_id, account_mgr in multi_account_mgr.accounts.items():
-        account_mgr.conversation_count = global_stats["account_conversations"].get(account_id, 0)
-        account_mgr.failure_count = global_stats["account_failures"].get(account_id, 0)
-    logger.info("[SYSTEM] 已恢复账户成功/失败统计")
-    logger.info(f"[SYSTEM] 统计数据已加载: {global_stats['total_requests']} 次请求, {global_stats['total_visitors']} 位访客")
-
-    # 启动缓存清理任务
-    asyncio.create_task(multi_account_mgr.start_background_cleanup())
-    logger.info("[SYSTEM] 后台缓存清理任务已启动（间隔: 5分钟）")
-
-    # 启动数据库清理任务
-    asyncio.create_task(cleanup_database_task())
-    logger.info("[SYSTEM] 数据库清理任务已启动（每天清理一次，保留30天数据）")
-
-    # 启动冷却状态定期保存任务（每5分钟保存一次）
-    if storage.is_database_enabled():
-        asyncio.create_task(save_cooldown_states_task())
-        logger.info("[SYSTEM] 冷却状态定期保存任务已启动（间隔: 5分钟）")
-
-    # 启动媒体文件过期清理任务
-    asyncio.create_task(cleanup_expired_media_task())
-    expire_hours = config.basic.image_expire_hours
-    if expire_hours < 0:
-        logger.info("[SYSTEM] 媒体文件过期清理已跳过（设置为永不删除）")
-    else:
-        logger.info(f"[SYSTEM] 媒体文件过期清理任务已启动（过期时间: {expire_hours}小时，检查间隔: 30分钟）")
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """应用关闭时保存冷却状态"""
-    if storage.is_database_enabled():
-        try:
-            success_count = await account.save_all_cooldown_states(multi_account_mgr)
-            logger.info(f"[SYSTEM] 应用关闭，已保存 {success_count}/{len(multi_account_mgr.accounts)} 个账户的冷却状态")
-        except Exception as e:
-            logger.error(f"[SYSTEM] 关闭时保存冷却状态失败: {e}")
-
-
-async def save_cooldown_states_task():
-    """定期保存所有账户的冷却状态到数据库"""
-    while True:
-        try:
-            await asyncio.sleep(300)  # 每5分钟执行一次
-            for attempt in range(3):
-                try:
-                    success_count = await account.save_all_cooldown_states(multi_account_mgr)
-                    logger.debug(f"[COOLDOWN] 定期保存: {success_count}/{len(multi_account_mgr.accounts)} 个账户")
-                    break
-                except Exception as retry_err:
-                    err_msg = str(retry_err)
-                    if "another operation" in err_msg or "ConnectionDoesNotExist" in err_msg or "connection was closed" in err_msg:
-                        if attempt < 2:
-                            logger.warning(f"[COOLDOWN] 数据库连接繁忙，{attempt+1}/3 次重试...")
-                            await asyncio.sleep(5 * (attempt + 1))
-                            continue
-                    raise
-        except Exception as e:
-            logger.error(f"[COOLDOWN] 定期保存失败: {e}")
-
-
-async def cleanup_database_task():
-    """定时清理数据库过期数据"""
-    while True:
-        try:
-            await asyncio.sleep(24 * 3600)  # 每天执行一次
-            deleted_count = await stats_db.cleanup_old_data(days=30)
-            logger.info(f"[DATABASE] 清理了 {deleted_count} 条过期数据（保留30天）")
-        except Exception as e:
-            logger.error(f"[DATABASE] 清理数据失败: {e}")
 
 # ---------- 图片画廊 API ----------
 
@@ -728,44 +574,6 @@ def _scan_media_files() -> list:
     files.sort(key=lambda x: x["mtime"], reverse=True)
     return files
 
-
-async def cleanup_expired_media_task():
-    """定期清理过期的图片和视频文件"""
-    while True:
-        try:
-            await asyncio.sleep(30 * 60)  # 每 30 分钟检查一次
-
-            expire_hours = config.basic.image_expire_hours
-            if expire_hours < 0:
-                # -1 表示永不删除
-                continue
-
-            now = time.time()
-            deleted_count = 0
-
-            for directory in [IMAGE_DIR, VIDEO_DIR]:
-                if not os.path.isdir(directory):
-                    continue
-                for filename in os.listdir(directory):
-                    filepath = os.path.join(directory, filename)
-                    if not os.path.isfile(filepath):
-                        continue
-                    try:
-                        mtime = os.path.getmtime(filepath)
-                        age_hours = (now - mtime) / 3600
-                        if age_hours > expire_hours:
-                            os.remove(filepath)
-                            deleted_count += 1
-                    except Exception:
-                        continue
-
-            if deleted_count > 0:
-                logger.info(f"[GALLERY] 清理了 {deleted_count} 个过期媒体文件（过期时间: {expire_hours}小时）")
-
-        except asyncio.CancelledError:
-            break
-        except Exception as e:
-            logger.error(f"[GALLERY] 清理过期文件失败: {e}")
 
 # ---------- 日志脱敏函数 ----------
 def get_sanitized_logs(limit: int = 100) -> list:
@@ -978,6 +786,11 @@ def _set_multi_account_mgr(manager) -> None:
     multi_account_mgr = manager
 
 
+def _set_global_stats(stats: dict[str, Any]) -> None:
+    global global_stats
+    global_stats = stats
+
+
 def _get_runtime_settings_state() -> dict[str, Any]:
     return {
         "api_key": API_KEY,
@@ -1030,68 +843,68 @@ def _create_http_client_for_proxy(proxy: Optional[str]):
         ),
     )
 
-register_system_routes(
+# ---------- 应用生命周期注册 ----------
+register_lifecycle_hooks(
     app,
-    SystemRouteDeps(
-        admin_key=lambda: ADMIN_KEY,
+    LifecycleDeps(
+        account_store=account,
+        cleanup_expired_gallery=cleanup_expired_gallery_payload,
+        data_dir=DATA_DIR,
         get_config=lambda: config,
-        get_global_stats=lambda: global_stats,
-        get_log_buffer=lambda: log_buffer,
         get_multi_account_mgr=lambda: multi_account_mgr,
-        get_sanitized_logs=get_sanitized_logs,
-        get_update_status=get_update_status,
-        get_version_info=get_version_info,
         image_dir=IMAGE_DIR,
-        log_lock=log_lock,
+        load_stats=load_stats,
         logger=logger,
-        login_user=login_user,
-        logout_user=logout_user,
-        require_login=require_login,
-        save_stats=save_stats,
-        scan_media_files=_scan_media_files,
+        set_global_stats=_set_global_stats,
         stats_db=stats_db,
-        stats_lock=stats_lock,
+        storage=storage,
         uptime_tracker=uptime_tracker,
         video_dir=VIDEO_DIR,
     ),
 )
 
-register_account_routes(
+register_http_routes(
     app,
-    AccountRouteDeps(
-        bulk_delete_accounts=_bulk_delete_accounts,
-        bulk_update_account_disabled_status=_bulk_update_account_disabled_status,
-        delete_account=_delete_account,
-        format_account_expiration=format_account_expiration,
-        get_global_stats=lambda: global_stats,
-        get_http_client=lambda: http_client,
-        get_multi_account_mgr=lambda: multi_account_mgr,
-        get_retry_policy=lambda: RETRY_POLICY,
-        get_session_cache_ttl_seconds=lambda: SESSION_CACHE_TTL_SECONDS,
-        get_user_agent=lambda: USER_AGENT,
-        load_accounts_from_source=load_accounts_from_source,
-        logger=logger,
-        require_login=require_login,
-        save_account_cooldown_state=account.save_account_cooldown_state,
-        set_multi_account_mgr=_set_multi_account_mgr,
-        update_account_disabled_status=_update_account_disabled_status,
-        update_accounts_config=_update_accounts_config,
-    ),
-)
-
-register_settings_routes(
-    app,
-    SettingsRouteDeps(
+    RouteBootstrapDeps(
+        admin_key=lambda: ADMIN_KEY,
         apply_runtime_state=_apply_runtime_settings_state,
         build_retry_policy=build_retry_policy,
+        bulk_delete_accounts=_bulk_delete_accounts,
+        bulk_update_account_disabled_status=_bulk_update_account_disabled_status,
         config_manager=config_manager,
         create_http_client=_create_http_client_for_proxy,
+        delete_account=_delete_account,
+        format_account_expiration=format_account_expiration,
         get_config=lambda: config,
+        get_global_stats=lambda: global_stats,
+        get_http_client=lambda: http_client,
+        get_log_buffer=lambda: log_buffer,
         get_multi_account_mgr=lambda: multi_account_mgr,
+        get_retry_policy=lambda: RETRY_POLICY,
         get_runtime_state=_get_runtime_settings_state,
+        get_sanitized_logs=get_sanitized_logs,
+        get_session_cache_ttl_seconds=lambda: SESSION_CACHE_TTL_SECONDS,
+        get_update_status=get_update_status,
+        get_user_agent=lambda: USER_AGENT,
+        get_version_info=get_version_info,
+        image_dir=IMAGE_DIR,
+        load_accounts_from_source=load_accounts_from_source,
         logger=logger,
+        log_lock=log_lock,
+        login_user=login_user,
+        logout_user=logout_user,
         parse_proxy_setting=parse_proxy_setting,
         require_login=require_login,
+        save_account_cooldown_state=account.save_account_cooldown_state,
+        save_stats=save_stats,
+        scan_media_files=_scan_media_files,
+        set_multi_account_mgr=_set_multi_account_mgr,
+        stats_db=stats_db,
+        stats_lock=stats_lock,
+        update_account_disabled_status=_update_account_disabled_status,
+        update_accounts_config=_update_accounts_config,
+        uptime_tracker=uptime_tracker,
+        video_dir=VIDEO_DIR,
     ),
 )
 

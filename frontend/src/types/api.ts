@@ -163,32 +163,6 @@ export interface Settings {
     base_url?: string
     proxy_for_chat?: string
     image_expire_hours?: number
-    proxy_for_auth?: string
-    duckmail_base_url?: string
-    duckmail_api_key?: string
-    duckmail_verify_ssl?: boolean
-    temp_mail_provider?: 'duckmail' | 'moemail' | 'freemail' | 'gptmail' | 'cfmail'
-    moemail_base_url?: string
-    moemail_api_key?: string
-    moemail_domain?: string
-    freemail_base_url?: string
-    freemail_jwt_token?: string
-    freemail_verify_ssl?: boolean
-    freemail_domain?: string
-    mail_proxy_enabled?: boolean
-    gptmail_base_url?: string
-    gptmail_api_key?: string
-    gptmail_verify_ssl?: boolean
-    gptmail_domain?: string
-    cfmail_base_url?: string
-    cfmail_api_key?: string
-    cfmail_verify_ssl?: boolean
-    cfmail_domain?: string
-    browser_mode?: 'normal' | 'silent' | 'headless'
-    browser_headless?: boolean
-    refresh_window_hours?: number
-    register_domain?: string
-    register_default_count?: number
   }
   retry: {
     max_account_switch_tries: number
@@ -197,17 +171,6 @@ export interface Settings {
     images_rate_limit_cooldown_seconds: number
     videos_rate_limit_cooldown_seconds: number
     session_cache_ttl_seconds: number
-    auto_refresh_accounts_seconds?: number
-    scheduled_refresh_enabled?: boolean
-    scheduled_refresh_interval_minutes?: number
-    scheduled_refresh_cron?: string
-    verification_code_resend_count?: number
-    refresh_batch_size?: number
-    refresh_batch_interval_minutes?: number
-    refresh_cooldown_hours?: number
-    delete_expired_accounts?: boolean
-    auto_register_enabled?: boolean
-    min_account_count?: number
   }
   public_display: {
     logo_url?: string
